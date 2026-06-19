@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Mouse Controller</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, sans-serif;
+            background: #0b1220;
+            color: #f2f2f2;
+        }
+        .screen {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        header {
+            padding: 16px;
+            background: #111827;
+            border-bottom: 1px solid #2d3748;
+        }
+        h1 {
+            margin: 0 0 8px;
+            font-size: 1.3rem;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .panel {
+            padding: 14px;
+            background: #161b2a;
+            border-radius: 16px;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+        }
+        .panel.full {
+            flex: 1 1 100%;
+        }
+        .panel.wide {
+            flex: 1 1 60%;
+        }
+        .panel.narrow {
+            flex: 1 1 35%;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        input,
+        button,
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid #2d3748;
+            background: #0f172a;
+            color: #f8fafc;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        button {
+            cursor: pointer;
+            border: none;
+            background: #2563eb;
+            color: white;
+            font-weight: 600;
+            transition: transform 0.1s ease, background 0.2s ease;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        button.secondary {
+            background: #374151;
+        }
+        #touchpad {
+            flex: 1;
+            min-height: 280px;
+            margin-top: 12px;
+            border-radius: 24px;
+            background: radial-gradient(circle at center, rgba(96,165,250,0.12), transparent 45%), #111827;
+            border: 1px solid #2d3748;
+            position: relative;
+            touch-action: none;
+        }
+        #touchpad.active {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 2px rgba(96,165,250,0.16);
+        }
+        #touchpad .hint {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 1rem;
+            text-align: center;
+            padding: 24px;
+            pointer-events: none;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .status {
+            margin-top: 12px;
+            font-size: 0.95rem;
+        }
+        .status span {
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="screen">
+        <header>
+            <h1>Android Mouse Controller</h1>
+            <div class="row">
+                <div class="panel narrow">
+                    <label for="serverAddress">Server URL or Host</label>
+                    <input id="serverAddress" placeholder="https://abcd1234.ngrok.io" />
+                </div>
+                <div class="panel narrow">
+                    <label for="serverPort">Port (optional)</label>
+                    <input id="serverPort" value="8080" />
+                </div>
+                <div class="panel wide">
+                    <label for="tokenInput">Access Token</label>
+                    <input id="tokenInput" placeholder="Token auto-filled from server" />
+                </div>
+            </div>
+            <div class="row" style="margin-top: 12px;">
+                <button id="connectButton">Connect</button>
+                <button id="disconnectButton" class="secondary" disabled>Disconnect</button>
+            </div>
+            <div class="status" id="connectionStatus">Status: <span>disconnected</span></div>
+        </header>
+
+        <main class="row" style="flex: 1; padding: 16px; gap: 16px;">
+            <section class="panel wide" style="display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h2 style="margin: 0;">Touchpad</h2>
+                    <button id="toggleModeButton" class="secondary" style="width: auto; padding: 8px 16px; font-size: 0.9rem;">Paint Mode</button>
+                </div>
+                <div id="touchpad">
+                    <div class="hint" id="touchpadHint">Drag here to move the pointer<br>Tap buttons below to click</div>
+                </div>
+                <div class="status" id="touchStatus"></div>
+            </section>
+
+            <section class="panel narrow" style="display: flex; flex-direction: column; gap: 14px;">
+                <h2>Actions</h2>
+                <div class="grid">
+                    <button id="leftClick">Left Click</button>
+                    <button id="rightClick">Right Click</button>
+                    <button id="doubleClick">Double Click</button>
+                    <button id="scrollUp">Scroll Up</button>
+                    <button id="scrollDown">Scroll Down</button>
+                    <button id="centerMouse">Center</button>
+                </div>
+                <div>
+                    <label for="speedSlider">Mouse Speed: <span id="speedValue">1.5x</span></label>
+                    <input id="speedSlider" type="range" min="0.5" max="3" step="0.1" value="1.5" style="width: 100%; padding: 6px 0;" />
+                </div>
+                <label for="keyboardInput">Keyboard</label>
+                <input id="keyboardInput" placeholder="Type key name, e.g. enter" />
+                <button id="sendKey">Send Key</button>
+                <button id="refreshTokenButton" class="secondary">Refresh Token</button>
+                <button id="ctrlAltDel" class="secondary">Ctrl+Alt+Del</button>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const serverAddress = document.getElementById("serverAddress");
+        const serverPort = document.getElementById("serverPort");
+        const tokenInput = document.getElementById("tokenInput");
+        const connectButton = document.getElementById("connectButton");
+        const disconnectButton = document.getElementById("disconnectButton");
+        const connectionStatus = document.getElementById("connectionStatus");
+        const touchpad = document.getElementById("touchpad");
+        const touchStatus = document.getElementById("touchStatus");
+        const keyboardInput = document.getElementById("keyboardInput");
+
+        let socket = null;
+        let isDragging = false;
+        let lastX = 0;
+        let lastY = 0;
+        let lastKeyboardValue = "";
+        let touchpadMode = "mouse"; // "mouse" or "paint"
+        let isPainting = false; // Track if mouse button is held down in paint mode
+        let speedMultiplier = 1.5; // Multiplier for mouse movement speed
+
+        window.addEventListener("load", () => {
+            if (!serverAddress.value.trim() && window.location.hostname) {
+                serverAddress.value = window.location.hostname;
+            }
+            serverPort.value = window.location.port || "";
+            lastKeyboardValue = keyboardInput.value || "";
+        });
+
+        function updateStatus(text, color = "#f8fafc") {
+            connectionStatus.innerHTML = `Status: <span style="color:${color}">${text}</span>`;
+        }
+
+        function buildUrl() {
+            const hostValue = serverAddress.value.trim();
+            const port = serverPort.value.trim();
+            if (!hostValue) {
+                return null;
+            }
+
+            if (hostValue.startsWith("http://") || hostValue.startsWith("https://")) {
+                try {
+                    const parsed = new URL(hostValue);
+                    const wsProtocol = parsed.protocol === "https:" ? "wss" : "ws";
+                    return `${wsProtocol}://${parsed.host}/ws`;
+                } catch (error) {
+                    return null;
+                }
+            }
+
+            const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+            if (port) {
+                return `${protocol}://${hostValue}:${port}/ws`;
+            }
+            return `${protocol}://${hostValue}/ws`;
+        }
+
+        function sendCommand(data) {
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                return;
+            }
+            socket.send(JSON.stringify(data));
+        }
+
+        function connect() {
+            const token = tokenInput.value.trim();
+            const host = serverAddress.value.trim();
+            const port = serverPort.value.trim();
+            if (!host || !token) {
+                updateStatus("enter server and token", "#fbbf24");
+                return;
+            }
+
+            const url = buildUrl();
+            if (!url) {
+                updateStatus("invalid server address", "#f87171");
+                return;
+            }
+
+            socket = new WebSocket(url);
+            updateStatus("connecting...", "#60a5fa");
+            connectButton.disabled = true;
+
+            socket.addEventListener("open", () => {
+                sendCommand({ type: "handshake", token, name: "android-controller" });
+                updateStatus("connected", "#34d399");
+                disconnectButton.disabled = false;
+            });
+
+            socket.addEventListener("message", (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === "error") {
+                        updateStatus(data.message, "#f87171");
+                    }
+                } catch (error) {
+                    console.warn("Invalid message", error);
+                }
+            });
+
+            socket.addEventListener("close", () => {
+                updateStatus("disconnected", "#f87171");
+                connectButton.disabled = false;
+                disconnectButton.disabled = true;
+                touchpad.classList.remove("active");
+            });
+
+            socket.addEventListener("error", () => {
+                updateStatus("connection error", "#f87171");
+                connectButton.disabled = false;
+                disconnectButton.disabled = true;
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+        }
+
+        function sendMouseMove(dx, dy) {
+            sendCommand({ type: "move", mode: "relative", dx: dx * speedMultiplier, dy: dy * speedMultiplier });
+        }
+
+        function sendClick(button = "left") {
+            sendCommand({ type: "click", button, clicks: 1 });
+        }
+
+        function sendScroll(amount) {
+            sendCommand({ type: "scroll", amount });
+        }
+
+        touchpad.addEventListener("pointerdown", (event) => {
+            isDragging = true;
+            lastX = event.clientX;
+            lastY = event.clientY;
+            touchpad.classList.add("active");
+            
+            if (touchpadMode === "paint") {
+                // Hold down the mouse button (smooth painting)
+                isPainting = true;
+                sendCommand({ type: "mouse_down", button: "left" });
+                touchStatus.textContent = "Painting... Release to stop.";
+            } else {
+                touchStatus.textContent = "Drag to move. Release to stop.";
+            }
+            touchpad.setPointerCapture(event.pointerId);
+        });
+
+        touchpad.addEventListener("pointermove", (event) => {
+            if (!isDragging) return;
+            const dx = event.clientX - lastX;
+            const dy = event.clientY - lastY;
+            lastX = event.clientX;
+            lastY = event.clientY;
+            
+            if (dx !== 0 || dy !== 0) {
+                sendMouseMove(dx, dy);
+            }
+        });
+
+        touchpad.addEventListener("pointerup", (event) => {
+            isDragging = false;
+            if (isPainting) {
+                // Release the mouse button
+                sendCommand({ type: "mouse_up", button: "left" });
+                isPainting = false;
+            }
+            touchpad.classList.remove("active");
+            touchStatus.textContent = "";
+        });
+
+        touchpad.addEventListener("pointercancel", () => {
+            isDragging = false;
+            if (isPainting) {
+                sendCommand({ type: "mouse_up", button: "left" });
+                isPainting = false;
+            }
+            touchpad.classList.remove("active");
+            touchStatus.textContent = "";
+        });
+
+        connectButton.addEventListener("click", connect);
+        disconnectButton.addEventListener("click", disconnect);
+        document.getElementById("leftClick").addEventListener("click", () => sendClick("left"));
+        document.getElementById("rightClick").addEventListener("click", () => sendClick("right"));
+        document.getElementById("doubleClick").addEventListener("click", () => sendCommand({ type: "double_click" }));
+        document.getElementById("scrollUp").addEventListener("click", () => sendScroll(120));
+        document.getElementById("scrollDown").addEventListener("click", () => sendScroll(-120));
+        document.getElementById("centerMouse").addEventListener("click", () => {
+            sendCommand({ type: "move", mode: "absolute", dx: 0.5, dy: 0.5 });
+        });
+        document.getElementById("sendKey").addEventListener("click", () => {
+            const key = keyboardInput.value.trim();
+            if (key) {
+                sendCommand({ type: "key", key });
+            }
+        });
+        document.getElementById("ctrlAltDel").addEventListener("click", () => {
+            sendCommand({ type: "hotkey", keys: ["ctrl", "alt", "delete"] });
+        });
+
+        // Touchpad mode toggle button
+        document.getElementById("toggleModeButton").addEventListener("click", () => {
+            if (touchpadMode === "mouse") {
+                touchpadMode = "paint";
+                document.getElementById("toggleModeButton").textContent = "Mouse Mode";
+                document.getElementById("touchpadHint").innerHTML = "Drag to paint and draw<br>Release to stop";
+            } else {
+                touchpadMode = "mouse";
+                document.getElementById("toggleModeButton").textContent = "Paint Mode";
+                document.getElementById("touchpadHint").innerHTML = "Drag here to move the pointer<br>Tap buttons below to click";
+            }
+        });
+
+        // Speed slider
+        document.getElementById("speedSlider").addEventListener("input", (event) => {
+            speedMultiplier = parseFloat(event.target.value);
+            document.getElementById("speedValue").textContent = speedMultiplier.toFixed(1) + "x";
+        });
+
+        // Refresh Token button: fetch current token from server
+        document.getElementById("refreshTokenButton").addEventListener("click", async () => {
+            try {
+                const protocol = window.location.protocol === "https:" ? "https" : "http";
+                const host = serverAddress.value.trim();
+                const port = serverPort.value.trim();
+                let url = `${protocol}://${host}`;
+                if (port) {
+                    url += `:${port}`;
+                }
+                url += "/api/token";
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.token) {
+                        tokenInput.value = data.token;
+                        updateStatus("Token refreshed", "#34d399");
+                    } else {
+                        updateStatus("No token from server", "#fbbf24");
+                    }
+                } else {
+                    updateStatus("Failed to fetch token", "#f87171");
+                }
+            } catch (error) {
+                console.error("Error fetching token:", error);
+                updateStatus("Error fetching token", "#f87171");
+            }
+        });
+
+        // Live typing: send incremental changes to the server so the phone
+        // keyboard types live on the PC. We compute a simple prefix diff
+        // to determine deletions (send backspaces) and additions (send 'type').
+        keyboardInput.addEventListener("input", () => {
+            const newVal = keyboardInput.value || "";
+            const oldVal = lastKeyboardValue || "";
+            // find common prefix length
+            let p = 0;
+            const minLen = Math.min(oldVal.length, newVal.length);
+            while (p < minLen && oldVal[p] === newVal[p]) p++;
+
+            const deletes = oldVal.length - p;
+            for (let i = 0; i < deletes; i++) {
+                sendCommand({ type: "key", key: "backspace" });
+            }
+
+            const added = newVal.slice(p);
+            if (added.length > 0) {
+                // send the added text as a single 'type' command
+                sendCommand({ type: "type", text: added });
+            }
+
+            lastKeyboardValue = newVal;
+        });
+    </script>
+</body>
+</html>
