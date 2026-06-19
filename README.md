@@ -13,6 +13,17 @@ Every remote control tool forces you through something:
 
 AnywhereInput does none of that. Open a browser, paste a link, control your PC. The server is yours. The connection is direct. The client is the web.
 
+## Compare
+
+|             | AnywhereInput | TeamViewer | Chrome RDP | VNC        |
+| ----------- | ------------- | ---------- | ---------- | ---------- |
+| App install | ❌ None        | ✅ Required | ✅ Required | ✅ Required |
+| Account     | ❌ None        | ✅ Required | ✅ Google   | ❌ None     |
+| Setup time  | ~30 sec       | ~5 min     | ~3 min     | ~10 min    |
+| Open source | ✅ Yes         | ❌ No       | ❌ No       | ✅ Partial  |
+
+This isn't about bashing competitors — it's about showing you why AnywhereInput is worth trying first. No sign-ups, no installs, no waiting. Just a browser, a link, and control.
+
 ## What It Does
 
 | Feature | Detail |
