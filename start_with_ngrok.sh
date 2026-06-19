@@ -41,7 +41,13 @@ echo "Activating virtual environment..."
 source .venv/bin/activate
 
 echo "Installing required packages..."
-python -m pip install -q -r requirements.txt 2>/dev/null || true
+# Don't swallow pip failures — surface them instead of letting the
+# launcher crash later with a confusing import error.
+python -m pip install -q -r requirements.txt
+python -c "import pyautogui, aiohttp, requests" || {
+    echo -e "${RED}ERROR: Required Python packages failed to install.${NC}"
+    exit 1
+}
 
 echo ""
 echo "Searching for ngrok executable..."
