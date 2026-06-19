@@ -7,8 +7,8 @@ Thank you for your interest in contributing! Here's how you can help:
 1. **Fork the repository** on GitHub
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/yourusername/remote-mouse-controller.git
-   cd remote-mouse-controller
+   git clone https://github.com/z-hussein/AnywhereInput.git
+   cd AnywhereInput-main
    ```
 3. **Create a feature branch**:
    ```bash
@@ -71,4 +71,4 @@ Feel free to open an issue for questions or discussions.
 
 ---
 
-**Thank you for making Remote Mouse Controller better!**
+**Thank you for making AnywhereInput better!**
