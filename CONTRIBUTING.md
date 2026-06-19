@@ -1,4 +1,4 @@
-# Contributing to Remote Mouse Controller
+# Contributing to AnywhereInput
 
 Thank you for your interest in contributing! Here's how you can help:
 
