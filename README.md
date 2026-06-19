@@ -2,7 +2,7 @@
 
 > Control your Windows, Linux, or macOS PC from any phone, tablet, or browser — no app install, no account, no cloud dependency.
 
-[Demo GIF placeholder — 10s setup-to-control] # feel free to add ;)
+[Demo GIF placeholder — 10s setup-to-control] `feel free to add ;) `
 
 ## Why This Exists
 
