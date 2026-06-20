@@ -41,7 +41,7 @@ def _load_pyautogui():
 
 # Parse command-line arguments first
 parser = argparse.ArgumentParser(
-    description="Remote Mouse Controller Server",
+    description="AnywhereInput Server",
     epilog="Example: python secure_server.py --port 9000 --token-file ./my_tokens.json -v"
 )
 parser.add_argument("--port", type=int, default=8008,
