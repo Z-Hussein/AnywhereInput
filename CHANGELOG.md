@@ -47,9 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - macOS server support
 - Linux server support  
-- iOS app support
 - Screen sharing capability
 - Multi-device simultaneous control
 - Custom gesture recognition
-- Game controller input mapping
 - Recording and playback of commands
