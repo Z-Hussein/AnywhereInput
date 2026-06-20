@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Remote Mouse Controller - Linux ngrok Launcher
+# AnywhereInput - Linux ngrok Launcher
 # This script sets up the environment and starts the server with ngrok
 
 set -e
@@ -40,11 +40,14 @@ fi
 echo "Activating virtual environment..."
 source .venv/bin/activate
 
+
 echo "Installing required packages..."
-# Don't swallow pip failures — surface them instead of letting the
+# Don't swallow pip failures - surface them instead of letting the
 # launcher crash later with a confusing import error.
 python -m pip install -q -r requirements.txt
-python -c "import pyautogui, aiohttp, requests" || {
+# Validate import of non-GUI packages only. pyautogui may require a display
+# during import on Linux, so defer that check until runtime.
+python -c "import aiohttp, requests, qrcode, pyotp" || {
     echo -e "${RED}ERROR: Required Python packages failed to install.${NC}"
     exit 1
 }
@@ -79,6 +82,27 @@ fi
 if [ -z "$NGROK_PATH" ]; then
     if command -v ngrok &> /dev/null; then
         NGROK_PATH="$(which ngrok)"
+    fi
+fi
+
+# If ngrok is not installed and snap is available, offer to install it.
+if [ -z "$NGROK_PATH" ] && command -v snap &> /dev/null; then
+    echo -e "${YELLOW}ngrok not found, but snap is available.${NC}"
+    read -r -p "Install ngrok via snap now? [Y/n] " install_choice
+    install_choice=${install_choice:-Y}
+    if [[ "$install_choice" =~ ^[Yy]$ ]]; then
+        echo "Installing ngrok via snap..."
+        if sudo snap install ngrok --classic; then
+            if command -v ngrok &> /dev/null; then
+                NGROK_PATH="$(which ngrok)"
+                echo -e "${GREEN}Installed ngrok: $NGROK_PATH${NC}"
+            else
+                echo -e "${YELLOW}ngrok installed, but it is not yet available in PATH."
+                echo -e "You may need to restart your shell or run this script again.${NC}"
+            fi
+        else
+            echo -e "${RED}Failed to install ngrok via snap.${NC}"
+        fi
     fi
 fi
 
