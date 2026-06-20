@@ -75,7 +75,7 @@ echo.
 echo To start the server, run one of these commands:
 echo.
 echo   For local network use:
-echo     python secure_mouse_server.py
+echo     python secure_server.py
 echo.
 echo   For remote access (requires ngrok):
 echo     python launch_with_ngrok.py
