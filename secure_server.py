@@ -4,20 +4,48 @@ import logging
 import secrets
 import socket
 import argparse
+import os
 from pathlib import Path
 
-import pyautogui
 import re
 from datetime import datetime
 from aiohttp import web
 
+from qr_display import generate_terminal_qr
+
+pyautogui = None
+
+
+def _load_pyautogui():
+    global pyautogui
+    if pyautogui is not None:
+        return pyautogui
+
+    try:
+        import pyautogui as p
+        p.FAILSAFE = False
+        p.PAUSE = 0  # Disable 100ms delay between commands for faster response
+        p.POINT_NAMES = False  # No extra processing
+        pyautogui = p
+        return pyautogui
+    except Exception as exc:
+        display = os.environ.get("DISPLAY")
+        extra = f" DISPLAY={display}" if display else " DISPLAY is not set."
+        raise RuntimeError(
+            "Failed to initialize pyautogui. "
+            "This program requires a working X11 display and permission to access it." +
+            extra +
+            "\nIf you are on Linux, run this from a logged-in desktop session or set XAUTHORITY to the correct X11 authority file." 
+            "\nFor example: export DISPLAY=:0 && export XAUTHORITY=$HOME/.Xauthority"
+        ) from exc
+
 # Parse command-line arguments first
 parser = argparse.ArgumentParser(
     description="Remote Mouse Controller Server",
-    epilog="Example: python secure_mouse_server.py --port 9000 --token-file ./my_tokens.json -v"
+    epilog="Example: python secure_server.py --port 9000 --token-file ./my_tokens.json -v"
 )
-parser.add_argument("--port", type=int, default=8080,
-                    help="HTTP port for the server (default: 8080)")
+parser.add_argument("--port", type=int, default=8008,
+                    help="HTTP port for the server (default: 8008)")
 parser.add_argument("--bind", default="0.0.0.0",
                     help="Bind address (default: 0.0.0.0, use :: for IPv6)")
 parser.add_argument("--token-file", type=str, default=None,
@@ -38,11 +66,6 @@ BIND_ADDRESS = args.bind
 WS_PORT = 8765
 
 logger.info("Configuration: port=%d, bind=%s, token-file=%s", HTTP_PORT, BIND_ADDRESS, TOKEN_FILE)
-
-pyautogui.FAILSAFE = False
-pyautogui.PAUSE = 0  # Disable 100ms delay between commands for faster response
-pyautogui.POINT_NAMES = False  # No extra processing
-
 
 def get_local_addresses():
     addresses = set()
@@ -111,7 +134,7 @@ tokens = load_tokens()
 
 class MouseControlServer:
     def __init__(self):
-        self.screen_width, self.screen_height = pyautogui.size()
+        self.screen_width, self.screen_height = _load_pyautogui().size()
         self.active_connections = set()
         logger.info("Screen size detected: %dx%d", self.screen_width, self.screen_height)
         logger.info("Trust token file: %s", TOKEN_FILE.resolve())
@@ -250,7 +273,7 @@ async def serve_http(request):
     # Android UI auto-fills the correct access token instead of a
     # hardcoded value.
     try:
-        html_path = BASE_DIR / "android_controller.html"
+        html_path = BASE_DIR / "client.html"
         text = html_path.read_text(encoding="utf-8")
         token_value = ""
         try:
@@ -271,8 +294,8 @@ async def serve_http(request):
 
         return web.Response(text=new_text, content_type="text/html")
     except Exception as exc:
-        logger.exception("Error serving android_controller.html: %s", exc)
-        return web.FileResponse(str(BASE_DIR / "android_controller.html"))
+        logger.exception("Error serving client.html: %s", exc)
+        return web.FileResponse(str(BASE_DIR / "client.html"))
 
 
 async def get_token(request):
@@ -334,7 +357,27 @@ async def main():
 
     token_list = list(tokens.keys())
     logger.info("Use this token from your Android device: %s", token_list[0])
-    logger.info("If using public IPv6, open http://[<PUBLIC_IPV6>]:%d/ on the remote device", HTTP_PORT)
+
+    # Build the public-facing URL for QR display
+    ngrok_url = os.environ.get("NGROK_URL", "") or f"http://localhost:{HTTP_PORT}"
+    if local_ips:
+        # Prefer first non-loopback IPv4 address
+        fallback = f"http://{local_ips[0]}:{HTTP_PORT}"
+    else:
+        fallback = None
+
+    connection_base = ngrok_url or fallback
+    if connection_base is None:
+        connection_base = f"http://localhost:{HTTP_PORT}"
+
+    sep = "&" if "?" in connection_base else "?"
+    connection_url = f"{connection_base}{sep}token={token_list[0]}"
+
+    # Print QR code for easy phone scanning
+    generate_terminal_qr(connection_url)
+
+    if not ngrok_url and fallback:
+        logger.info("If using public IPv6, open http://[<PUBLIC_IPV6>]:%d/ on the remote device", HTTP_PORT)
 
     try:
         await asyncio.Event().wait()
