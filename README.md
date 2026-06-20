@@ -1,8 +1,8 @@
 # AnywhereInput
 
-> Control your Windows, Linux, or macOS PC from any phone, tablet, or browser — no app install, no account, no cloud dependency.
+> Control your Windows, Linux, or macOS PC from any phone, tablet, or browser - no app install, no account, no cloud dependency.
 
-[Demo GIF placeholder — 10s setup-to-control] `feel free to add ;) `
+[Demo GIF placeholder - 10s setup-to-control] `feel free to add ;) `
 
 ## Why This Exists
 
@@ -22,7 +22,7 @@ AnywhereInput does none of that. Open a browser, paste a link, control your PC. 
 | Setup time  | ~30 sec       | ~5 min     | ~3 min     | ~10 min    |
 | Open source | ✅ Yes         | ❌ No       | ❌ No       | ✅ Partial  |
 
-This isn't about bashing competitors — it's about showing you why AnywhereInput is worth trying first. No sign-ups, no installs, no waiting. Just a browser, a link, and control.
+This isn't about bashing competitors - it's about showing you why AnywhereInput is worth trying first. No sign-ups, no installs, no waiting. Just a browser, a link, and control.
 
 ## What It Does
 
@@ -32,7 +32,7 @@ This isn't about bashing competitors — it's about showing you why AnywhereInpu
 | ⌨️ **Keyboard** | Single keys, hotkey combos (Ctrl+C, Ctrl+Alt+Del, etc.) |
 | 🌐 **Access** | Same WiFi (local IP) or anywhere (ngrok tunnel) |
 | 🔒 **Security** | Token-based WebSocket auth, auto-rotated per session |
-| 📱 **Client** | Any modern browser — Android, iOS, tablet, another laptop |
+| 📱 **Client** | Any modern browser - Android, iOS, tablet, another laptop |
 | ⚡ **Performance** | ~60Hz mouse updates, <50ms local / <200ms remote |
 
 ## Quick Start (60 Seconds)
@@ -94,7 +94,7 @@ python launch_with_ngrok.py
 
 ## How It Works
 
-- Your PC server runs locally on port 8080
+- Your PC server runs locally on port 8008
 - ngrok creates a secure HTTPS tunnel to your server
 - The public URL is displayed in the terminal
 - Your device connects through the ngrok tunnel
@@ -116,13 +116,13 @@ python launch_with_ngrok.py
 
 ### Buttons
 
-- **Left Click** — Single left mouse click
-- **Right Click** — Single right mouse click
-- **Double Click** — Double-click action
-- **Scroll Up/Down** — Scroll on the PC
-- **Center** — Move mouse to center of screen
-- **Keyboard** — Send individual key presses
-- **Ctrl+Alt+Del** — Send system keyboard shortcut
+- **Left Click** - Single left mouse click
+- **Right Click** - Single right mouse click
+- **Double Click** - Double-click action
+- **Scroll Up/Down** - Scroll on the PC
+- **Center** - Move mouse to center of screen
+- **Keyboard** - Send individual key presses
+- **Ctrl+Alt+Del** - Send system keyboard shortcut
 
 ## Architecture
 
@@ -144,7 +144,7 @@ python launch_with_ngrok.py
 - **Framework**: aiohttp (async HTTP/WebSocket server)
 - **Mouse Control**: pyautogui library
 - **Authentication**: Token-based WebSocket handshake
-- **Port**: 8080 (configurable)
+- **Port**: 8008 (configurable)
 
 ### Client (Any Browser)
 
@@ -202,7 +202,7 @@ python launch_with_ngrok.py
 
 ### Local Network (Same WiFi)
 ```
-http://<your-pc-ip>:8080/
+http://<your-pc-ip>:8008/
 ```
 No setup needed, just connect to your PC's local IP address.
 
@@ -262,8 +262,8 @@ If you need enterprise-grade security, add a reverse proxy with OAuth or mTLS.
 ├── setup_windows.bat           # Windows setup script
 ├── setup_linux.sh              # Linux/macOS setup script
 ├── launch_with_ngrok.py        # Python launcher script for ngrok
-├── secure_mouse_server.py      # Main WebSocket server
-├── android_controller.html     # Web UI for browser
+├── secure_server.py      # Main WebSocket server
+├── client.html     # Web UI for browser
 ├── requirements.txt            # Python dependencies (pinned versions)
 ├── .gitignore                  # Ignores tokens & virtual env
 ├── LICENSE                     # MIT License
@@ -273,9 +273,9 @@ If you need enterprise-grade security, add a reverse proxy with OAuth or mTLS.
 ## Configuration
 
 ### Change Server Port
-Edit the `HTTP_PORT` variable in `secure_mouse_server.py`:
+Edit the `HTTP_PORT` variable in `secure_server.py`:
 ```python
-HTTP_PORT = 8080  # Change this to your desired port
+HTTP_PORT = 8008  # Change this to your desired port
 ```
 
 ### Add More Tokens
@@ -322,8 +322,8 @@ export NGROK_PATH=/usr/local/bin/ngrok
 
 | Problem | Fix |
 |---------|-----|
-| ngrok URL not showing | Verify auth token at [dashboard.ngrok.com](https://dashboard.ngrok.com/get-started/your-authtoken) — paste without `$` prefix |
-| Can't connect from device | Check firewall allows port 8080; test `http://localhost:8080` on the PC first; verify ngrok tunnel is active for remote access |
+| ngrok URL not showing | Verify auth token at [dashboard.ngrok.com](https://dashboard.ngrok.com/get-started/your-authtoken) - paste without `$` prefix |
+| Can't connect from device | Check firewall allows port 8008; test `http://localhost:8008` on the PC first; verify ngrok tunnel is active for remote access |
 | Connection timeout | Verify both devices have internet; check ngrok account status; verify ngrok auth token hasn't expired |
 | Mouse moving too slow / lag | Check your network latency; reduce the distance of drag movements on touchpad; try connecting to a closer server or local network |
 
@@ -368,14 +368,14 @@ For issues, questions, or suggestions, open an issue on GitHub and check existin
 
 ## License
 
-MIT License — See [LICENSE](LICENSE) for details.
+MIT License - See [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
 Built with:
-- [aiohttp](https://github.com/aio-libs/aiohttp) — Async HTTP framework
-- [pyautogui](https://github.com/asweigart/pyautogui) — Mouse and keyboard automation
-- [ngrok](https://ngrok.com) — Public tunneling service
+- [aiohttp](https://github.com/aio-libs/aiohttp) - Async HTTP framework
+- [pyautogui](https://github.com/asweigart/pyautogui) - Mouse and keyboard automation
+- [ngrok](https://ngrok.com) - Public tunneling service
 
 ---
 
