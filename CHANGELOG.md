@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-06-19
+## [1.0.0] - 2026-06-20
 
 ### Added
 - Initial release of Remote Mouse Controller
@@ -36,18 +36,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Improved `start_with_ngrok.bat` Python discovery across drives (C..Z) and ngrok search (bundled, drives, PATH)
-- Added `--ngrok-path` CLI and `NGROK_PATH` env support in `launch_with_ngrok.py`
-- Added Ctrl+N (`n`) in launcher to restart server and regenerate token (token rotation)
-- Added `.gitignore` entries to ignore `trusted_tokens.json` and `.venv`
+- Added `qr_display.py` helper for terminal QR code generation
+- Added `--bind` option in `secure_server.py` for custom host binding
+- Added local IPv4/IPv6 address detection and status logging in `secure_server.py`
+- Added automatic `trusted_tokens.json` generation on server startup
+- Added token injection into the served `client.html` page
+- Improved `start_with_ngrok.bat` Python discovery across drives (C..Z) and ngrok search locations (bundled, PATH)
+- Added `--ngrok-path` CLI and `NGROK_PATH` environment variable support in `launch_with_ngrok.py`
+- Added token rotation support via Ctrl+N / `n` in `launch_with_ngrok.py`
+- Added `.gitignore` entries to ignore `trusted_tokens.json`, `.venv`, and ngrok artifacts
 
 ### Changed
-- Removed hardcoded default token from `README.md`; launcher now prefers `trusted_tokens.json` token
+- Removed hardcoded default token from `README.md`; launcher now prefers the token generated in `trusted_tokens.json`
 
 ### Planned
-- macOS server support
-- Linux server support  
-- Screen sharing capability
-- Multi-device simultaneous control
-- Custom gesture recognition
-- Recording and playback of commands
+- Finish server-side terminal QR code integration and use the correct `generate_terminal_qr()` helper
+- Replace `trusted_tokens.json` with TOTP-based auth, session expiry, rate limiting, and IP pinning
+- Add `auth.py` for authentication/session management
+- Add local-mode default launchers (`start.bat` / `start.sh`) with remote ngrok compatibility and OS config storage
+- Add Cloudflare tunnel support via `tunnel_providers.py`
+- Add optional HTTPS local mode and audit logging in `~/.anywhereinput`
+- Restructure documentation into `docs/` and update `README.md`
+- Add install scripts and cross-platform packaging support
+- Add GitHub Actions release workflow and standalone binary packaging
