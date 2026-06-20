@@ -14,11 +14,11 @@ import platform
 
 # Parse command-line arguments
 parser = argparse.ArgumentParser(
-    description="Launch remote mouse controller with ngrok tunnel",
+    description="Launch AnywhereInput with ngrok tunnel",
     epilog="Example: python launch_with_ngrok.py --port 9000 --region us --auto-token"
 )
-parser.add_argument("--port", type=int, default=8080,
-                    help="Server port to tunnel (default: 8080)")
+parser.add_argument("--port", type=int, default=8008,
+                    help="Server port to tunnel (default: 8008)")
 parser.add_argument("--region", type=str, default=None,
                     help="ngrok region (us, eu, au, ap, sa, jp, in) - default: auto")
 parser.add_argument("--auto-token", action="store_true",
@@ -98,14 +98,24 @@ def read_token_from_file(timeout=15):
 print("[*] Starting mouse server...")
 with server_lock:
     server_proc = subprocess.Popen(
-        [sys.executable, "secure_mouse_server.py", "--port", str(PORT_TO_TUNNEL)] + (["--verbose"] if VERBOSE else []),
+        [sys.executable, "secure_server.py", "--port", str(PORT_TO_TUNNEL)] + (["--verbose"] if VERBOSE else []),
         cwd=os.path.dirname(__file__),
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
     )
     processes.append(server_proc)
 # Give the server a little time to start and create trusted_tokens.json
 time.sleep(1)
+
+if server_proc.poll() is not None:
+    print("[!] ERROR: Mouse server exited immediately.")
+    if server_proc.stdout is not None:
+        output = server_proc.stdout.read()
+        if output:
+            print(output.strip())
+    cleanup()
+    sys.exit(1)
 
 # Wait for trusted_tokens.json to be created by the server and read the token
 token_from_file = None
@@ -144,7 +154,7 @@ def restart_server_and_reload_token():
 
         # Start a fresh server
         server_proc = subprocess.Popen(
-            [sys.executable, "secure_mouse_server.py", "--port", str(PORT_TO_TUNNEL)] + (["--verbose"] if VERBOSE else []),
+            [sys.executable, "secure_server.py", "--port", str(PORT_TO_TUNNEL)] + (["--verbose"] if VERBOSE else []),
             cwd=os.path.dirname(__file__),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
@@ -204,17 +214,33 @@ import os
 import glob
 import shutil
 
-ngrok_paths = [
-    os.path.join(os.path.dirname(__file__), "ngrok.exe"),
-    os.path.join(os.path.expanduser("~"), "AppData", "Local", "ngrok", "ngrok.exe"),
-    os.path.expandvars(r"%LOCALAPPDATA%\ngrok\ngrok.exe"),
-    os.path.join(os.path.expanduser("~"), "Downloads", "ngrok-v3-stable-windows-amd64", "ngrok.exe"),
-    os.path.join(os.path.expanduser("~"), "Downloads", "ngrok.exe"),
-    r"C:\Program Files\ngrok\ngrok.exe",
-    r"C:\Program Files (x86)\ngrok\ngrok.exe",
-    "ngrok",
-    "ngrok.exe"
-]
+system = platform.system()
+ngrok_paths = []
+if system == "Windows":
+    ngrok_paths = [
+        os.path.join(os.path.dirname(__file__), "ngrok.exe"),
+        os.path.join(os.path.expanduser("~"), "AppData", "Local", "ngrok", "ngrok.exe"),
+        os.path.expandvars(r"%LOCALAPPDATA%\ngrok\ngrok.exe"),
+        os.path.join(os.path.expanduser("~"), "Downloads", "ngrok-v3-stable-windows-amd64", "ngrok.exe"),
+        os.path.join(os.path.expanduser("~"), "Downloads", "ngrok.exe"),
+        r"C:\Program Files\ngrok\ngrok.exe",
+        r"C:\Program Files (x86)\ngrok\ngrok.exe",
+        "ngrok",
+        "ngrok.exe"
+    ]
+else:
+    ngrok_paths = [
+        os.path.join(os.path.dirname(__file__), "ngrok"),
+        os.path.join(os.path.dirname(__file__), "ngrok.exe"),
+        os.path.join(os.path.expanduser("~"), ".local", "bin", "ngrok"),
+        os.path.join(os.path.expanduser("~"), "bin", "ngrok"),
+        os.path.join(os.path.expanduser("~"), "Downloads", "ngrok"),
+        os.path.join(os.path.expanduser("~"), "Downloads", "ngrok-stable-linux-amd64", "ngrok"),
+        "/usr/local/bin/ngrok",
+        "/usr/bin/ngrok",
+        "/snap/bin/ngrok",
+        "ngrok"
+    ]
 
 # If user passed explicit ngrok path via CLI, prefer it
 if args.ngrok_path:
@@ -261,15 +287,27 @@ if not ngrok_cmd:
 if not ngrok_cmd:
     print()
     print("[!] ERROR: ngrok not found in any of these locations:")
-    print("    1. C:\\Users\\<USERNAME>\\AppData\\Local\\ngrok\\ngrok.exe")
-    print("    2. C:\\Program Files\\ngrok\\ngrok.exe")
-    print("    3. System PATH")
+    if system == "Windows":
+        print("    1. C:\\Users\\<USERNAME>\\AppData\\Local\\ngrok\\ngrok.exe")
+        print("    2. C:\\Program Files\\ngrok\\ngrok.exe")
+        print("    3. System PATH")
+        print("    4. ./ngrok.exe")
+    else:
+        print("    1. ./ngrok")
+        print("    2. ~/.local/bin/ngrok or ~/bin/ngrok")
+        print("    3. /usr/local/bin/ngrok or /usr/bin/ngrok")
+        print("    4. System PATH")
     print()
     print("Solutions:")
     print("    a) Download: https://ngrok.com/download")
-    print("    b) Run installer and make sure to extract to AppData\\Local\\ngrok\\")
-    print("    c) Or add ngrok folder to your PATH environment variable")
-    print("    d) Or place ngrok.exe in: " + os.path.join(os.path.dirname(__file__), "ngrok.exe"))
+    if system == "Windows":
+        print("    b) Run installer and make sure to extract to AppData\\Local\\ngrok\\")
+        print("    c) Or add ngrok folder to your PATH environment variable")
+        print("    d) Or place ngrok.exe in: " + os.path.join(os.path.dirname(__file__), "ngrok.exe"))
+    else:
+        print("    b) Make the ngrok binary executable: chmod +x ~/Downloads/ngrok")
+        print("    c) Add the ngrok directory to your PATH: export PATH=\"$PATH:~/.local/bin\"")
+        print("    d) Or place ngrok in: " + os.path.join(os.path.dirname(__file__), "ngrok"))
     print()
     cleanup()
     sys.exit(1)
