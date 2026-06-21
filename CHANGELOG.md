@@ -1,61 +1,74 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to AnywhereInput will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [1.0.0] - 2026-06-20
-
-### Added
-- Initial release of Remote Mouse Controller
-- WebSocket-based server for mouse and keyboard control
-- Android browser client with touchpad interface
-- ngrok integration for cross-network access
-- Token-based authentication system
-- Support for multiple mouse buttons (left, right)
-- Keyboard input and hotkey support
-- Scroll wheel support
-- Responsive HTML5 interface
-- Cross-platform ngrok launcher
-
-### Features
-- Real-time mouse movement with low latency
-- Left/right mouse clicks and double-clicks
-- Keyboard key presses and key combinations
-- Scroll wheel support (up/down)
-- Screen-relative absolute positioning
-- Connection status display
-- Support for IPv4 and IPv6
-
-### Performance
-- Optimized pyautogui settings for responsive control
-- Efficient WebSocket message handling
-- Sub-50ms latency on local networks
 
 ## [Unreleased]
 
+### Planned
+- Multi-monitor screen capture support
+- Clipboard sync between devices
+- File transfer via drag & drop
+- iOS Safari-specific optimizations
+- Docker image for one-liner deployment
+- Custom domain support (ngrok alternative)
+- Audio streaming from server to client
+- Keyboard layout selection
+- Touchpad pinch-to-zoom gesture
+- Dark/light theme toggle
+- Connection history / saved servers
+- Biometric auth (WebAuthn) option
+
+## [2.0.0] - 2026-06-21
+
 ### Added
-- Added `qr_display.py` helper for terminal QR code generation
-- Added `--bind` option in `secure_server.py` for custom host binding
-- Added local IPv4/IPv6 address detection and status logging in `secure_server.py`
-- Added automatic `trusted_tokens.json` generation on server startup
-- Added token injection into the served `client.html` page
-- Improved `start_with_ngrok.bat` Python discovery across drives (C..Z) and ngrok search locations (bundled, PATH)
-- Added `--ngrok-path` CLI and `NGROK_PATH` environment variable support in `launch_with_ngrok.py`
-- Added token rotation support via Ctrl+N / `n` in `launch_with_ngrok.py`
-- Added `.gitignore` entries to ignore `trusted_tokens.json`, `.venv`, and ngrok artifacts
+- Real-time screen capture streaming from server to browser client via WebSocket
+- Screen overlay click - tap anywhere on the live stream to move cursor to absolute position
+- Two-finger scroll gesture on touchpad area
+- Long-press right click (600ms hold) with haptic feedback via navigator.vibrate()
+- Settings panel with toggles for screen capture, FPS counter, tap-to-click, long-press
+- Adjustable mouse sensitivity slider (0.3x to 3.0x)
+- Hardware cursor capture via MSS backend with thread-local instances
+- Highly visible software cursor overlay (white outline + red cross + yellow center dot)
+- Screen info API endpoint (GET /api/screen) returning capture config
+- Keepalive ping/pong every 10 seconds to prevent WebSocket timeout
+- Screen stream watchdog - auto-reconnects stalled streams after 4 seconds
+- CLI flags for screen capture: --fps, --quality, --scale, --no-capture
+- Connection status bar with color coding (connecting/disconnected/connected)
+- Auto-connect from URL parameters (?token=, ?host=, ?port=)
+- Visual feedback on keyboard input (green flash for chars, blue for special keys)
 
 ### Changed
-- Removed hardcoded default token from `README.md`; launcher now prefers the token generated in `trusted_tokens.json`
+- Increased scroll speed: button scroll 5 -> 15, touchpad scroll 3 -> 12
+- Rewrote keyboard input handling to hybrid approach:
+  - Primary: beforeinput event for virtual keyboard compatibility
+  - Secondary: keydown for special keys and physical keyboards
+  - Fallback: input event with 50ms deduplication debounce
+- Improved error handling and logging throughout screen capture engine
+- Cursor drawing now uses thick white outline for visibility on any background
 
-### Planned
-- Finish server-side terminal QR code integration and use the correct `generate_terminal_qr()` helper
-- Replace `trusted_tokens.json` with TOTP-based auth, session expiry, rate limiting, and IP pinning
-- Add `auth.py` for authentication/session management
-- Add local-mode default launchers (`start.bat` / `start.sh`) with remote ngrok compatibility and OS config storage
-- Add Cloudflare tunnel support via `tunnel_providers.py`
-- Add optional HTTPS local mode and audit logging in `~/.anywhereinput`
-- Restructure documentation into `docs/` and update `README.md`
-- Add install scripts and cross-platform packaging support
-- Add GitHub Actions release workflow and standalone binary packaging
+### Fixed
+- Mouse cursor not visible on client screen stream
+- MSS thread-safety issue by using thread-local instances per capture thread
+- Silent cursor overlay failures now properly logged
+- Screen capture backend fallback: MSS -> PIL/pyautogui
+
+### Dependencies
+- Added mss for hardware-accelerated screen capture with cursor
+- Added Pillow for JPEG compression and cursor overlay rendering
+
+## [1.0.0] - 2026-02-18
+
+### Added
+- Initial release of AnywhereInput
+- Token-based WebSocket authentication with auto-generated tokens
+- Mouse control: move (relative), click, double-click, right-click, scroll
+- Keyboard input: single keys and hotkey combinations (Ctrl+C, Ctrl+Alt+Del, etc.)
+- ngrok tunneling support for remote access
+- Cross-platform server (Windows, Linux, macOS)
+- Browser-based client requiring no app installation
+- Setup scripts for Windows (.bat) and Linux/macOS (.sh)
+- Python launcher script for automatic ngrok integration
+- QR code display in terminal for quick mobile connection
