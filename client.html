@@ -317,11 +317,105 @@
   }
   #backdrop.open { display: block; }
 
+
+  /* ─── Full Screen Mode Controls ───────────────────────────── */
+  #fullscreen-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 8px 12px;
+    background: rgba(13, 17, 23, 0.9);
+    border-top: 1px solid var(--border);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 1001;
+    backdrop-filter: blur(8px);
+  }
+  #app.full-display #fullscreen-controls {
+    display: flex;
+  }
+  #fullscreen-controls .fs-btn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #fullscreen-controls .fs-btn:active {
+    background: var(--border);
+  }
+  #fullscreen-controls .fs-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
+  #fs-scale-slider {
+    width: 120px;
+    accent-color: var(--accent);
+  }
+  #fs-scale-value {
+    min-width: 36px;
+    text-align: right;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* Full display layout */
+  #app.full-display {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: #000;
+  }
+  #app.full-display #screen-container {
+    position: fixed;
+    inset: 0;
+    bottom: 56px; /* Space for controls bar */
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+  }
+  #app.full-display #screen-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transition: transform 0.15s ease;
+  }
+  #app.full-display #toolbar,
+  #app.full-display #touchpad,
+  #app.full-display #bottom-bar,
+  #app.full-display #status-bar {
+    display: none !important;
+  }
+  /* Keyboard panel can appear over fullscreen */
+  #app.full-display #keyboard-panel.open {
+    display: flex;
+    position: fixed;
+    bottom: 56px;
+    left: 0;
+    right: 0;
+    z-index: 1002;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+
   /* ─── Responsive ───────────────────────────────────────────── */
   @media (min-width: 768px) {
     #touchpad { height: 280px; }
   }
 </style>
+<base target="_blank">
 <base target="_blank">
 <base target="_blank">
 </head>
@@ -737,7 +831,7 @@ touchpadArea.addEventListener('touchmove', (e) => {
     // Simplified: use first finger delta as scroll proxy
     const dy = t1.clientY - touchStartY;
     if (Math.abs(dy) > 10) {
-      send({ type: 'scroll', amount: dy > 0 ? -12 : 12 });
+      send({ type: 'scroll', amount: dy > 0 ? -3 : 3 });
       touchStartY = t1.clientY;
     }
   }
@@ -757,8 +851,8 @@ touchpadArea.addEventListener('touchend', (e) => {
 $('btnLeftClick').addEventListener('click', () => send({ type: 'click', button: 'left', clicks: 1 }));
 $('btnRightClick').addEventListener('click', () => send({ type: 'right_click' }));
 $('btnDoubleClick').addEventListener('click', () => send({ type: 'double_click' }));
-$('btnScrollUp').addEventListener('click', () => send({ type: 'scroll', amount: 15 }));
-$('btnScrollDown').addEventListener('click', () => send({ type: 'scroll', amount: -15 }));
+$('btnScrollUp').addEventListener('click', () => send({ type: 'scroll', amount: 5 }));
+$('btnScrollDown').addEventListener('click', () => send({ type: 'scroll', amount: -5 }));
 $('btnCenter').addEventListener('click', () => send({ type: 'move', mode: 'absolute', dx: 0.5, dy: 0.5 }));
 
 // ─── Keyboard ───────────────────────────────────────────────────────────────
@@ -970,6 +1064,174 @@ document.addEventListener('touchend', (e) => {
   if (now - lastTouchEnd <= 300) e.preventDefault();
   lastTouchEnd = now;
 }, false);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FULL SCREEN MODE - Touchscreen Experience
+// ═══════════════════════════════════════════════════════════════════════════
+
+let fullDisplayMode = false;
+let fsScale = 100;
+
+const fsControls = $('fullscreen-controls');
+const fsScaleSlider = $('fs-scale-slider');
+const fsScaleValue = $('fs-scale-value');
+const fsKeyboard = $('fs-keyboard');
+const fsExit = $('fs-exit');
+
+// Fullscreen toggle
+function toggleFullDisplay() {
+  fullDisplayMode = !fullDisplayMode;
+  app.classList.toggle('full-display', fullDisplayMode);
+
+  if (fullDisplayMode) {
+    // Enter fullscreen
+    applyFsScale();
+  } else {
+    // Exit fullscreen - reset
+    screenImg.style.transform = '';
+    keyboardPanel.classList.remove('open');
+    kbOpen = false;
+  }
+}
+
+// Scale control
+function applyFsScale() {
+  fsScale = parseInt(fsScaleSlider.value);
+  fsScaleValue.textContent = fsScale + '%';
+  const scale = fsScale / 100;
+  screenImg.style.transform = `scale(${scale})`;
+}
+
+fsScaleSlider.addEventListener('input', applyFsScale);
+
+// Keyboard button in fullscreen
+fsKeyboard.addEventListener('click', () => {
+  kbOpen = !kbOpen;
+  keyboardPanel.classList.toggle('open', kbOpen);
+  if (kbOpen) {
+    setTimeout(() => {
+      textInput.value = '';
+      textInput.focus();
+    }, 100);
+  }
+});
+
+// Exit button
+fsExit.addEventListener('click', toggleFullDisplay);
+
+// Add fullscreen button to bottom bar
+const btnFullscreen = document.createElement('button');
+btnFullscreen.className = 'btn';
+btnFullscreen.id = 'btnFullscreen';
+btnFullscreen.title = 'Full Screen Mode';
+btnFullscreen.innerHTML = `
+  <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+  Fullscreen
+`;
+btnFullscreen.addEventListener('click', toggleFullDisplay);
+$('bottom-bar').insertBefore(btnFullscreen, $('btnSettings'));
+
+// Fullscreen touch gestures
+let fdTouchStartX = 0, fdTouchStartY = 0;
+let fdTouchStartTime = 0;
+let fdIsDragging = false;
+let fdLongPressTimer = null;
+let fdLongPressTriggered = false;
+let fdLastTapTime = 0;
+
+screenOverlay.addEventListener('touchstart', (e) => {
+  if (!fullDisplayMode) return;
+
+  const t = e.touches[0];
+  fdTouchStartX = t.clientX;
+  fdTouchStartY = t.clientY;
+  fdTouchStartTime = Date.now();
+  fdIsDragging = false;
+  fdLongPressTriggered = false;
+
+  if (e.touches.length === 1 && longPressRightClick) {
+    fdLongPressTimer = setTimeout(() => {
+      fdLongPressTriggered = true;
+      const rect = screenOverlay.getBoundingClientRect();
+      const x = fdTouchStartX / rect.width;
+      const y = fdTouchStartY / rect.height;
+      send({ type: 'move', mode: 'absolute', dx: x, dy: y });
+      send({ type: 'right_click' });
+      navigator.vibrate?.(50);
+    }, 600);
+  }
+}, { passive: true });
+
+screenOverlay.addEventListener('touchmove', (e) => {
+  if (!fullDisplayMode) return;
+
+  if (e.touches.length === 1) {
+    const t = e.touches[0];
+    const dx = t.clientX - fdTouchStartX;
+    const dy = t.clientY - fdTouchStartY;
+
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+      fdIsDragging = true;
+      clearTimeout(fdLongPressTimer);
+    }
+
+    // Move cursor to finger position
+    const rect = screenOverlay.getBoundingClientRect();
+    const x = t.clientX / rect.width;
+    const y = t.clientY / rect.height;
+    send({ type: 'move', mode: 'absolute', dx: x, dy: y });
+
+  } else if (e.touches.length === 2) {
+    const t1 = e.touches[0];
+    const dy = t1.clientY - fdTouchStartY;
+    if (Math.abs(dy) > 15) {
+      send({ type: 'scroll', amount: dy > 0 ? -12 : 12 });
+      fdTouchStartY = t1.clientY;
+    }
+    clearTimeout(fdLongPressTimer);
+  }
+}, { passive: true });
+
+screenOverlay.addEventListener('touchend', (e) => {
+  if (!fullDisplayMode) return;
+  clearTimeout(fdLongPressTimer);
+
+  if (e.changedTouches.length === 1 && !fdIsDragging && !fdLongPressTriggered) {
+    const t = e.changedTouches[0];
+    const rect = screenOverlay.getBoundingClientRect();
+    const x = t.clientX / rect.width;
+    const y = t.clientY / rect.height;
+
+    send({ type: 'move', mode: 'absolute', dx: x, dy: y });
+
+    const now = Date.now();
+    if (now - fdLastTapTime < 300) {
+      send({ type: 'double_click' });
+    } else if (tapToClick) {
+      send({ type: 'click', button: 'left', clicks: 1 });
+    }
+    fdLastTapTime = now;
+  }
+}, { passive: true });
+
 </script>
+
+<!-- Full Screen Mode Controls -->
+<div id="fullscreen-controls">
+  <button class="fs-btn" id="fs-keyboard" title="Keyboard">
+    <svg viewBox="0 0 24 24"><path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2zM7 17H5v-2h2v2z"/></svg>
+    Keyboard
+  </button>
+  <div style="display:flex;align-items:center;gap:6px;">
+    <span style="font-size:11px;color:var(--text-muted);">Size</span>
+    <input type="range" id="fs-scale-slider" min="50" max="200" step="5" value="100">
+    <span id="fs-scale-value">100%</span>
+  </div>
+  <button class="fs-btn" id="fs-exit" title="Exit Full Screen">
+    <svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+    Exit
+  </button>
+</div>
+
 </body>
 </html>
