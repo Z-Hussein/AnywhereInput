@@ -402,7 +402,7 @@ export NGROK_PATH=/usr/local/bin/ngrok
 
 ## Changelog
 
-### v2.0.0 — Screen Capture & Touchpad Overhaul
+### added — Screen Capture & Touchpad Overhaul
 - **New**: Real-time screen capture streaming from server to browser
 - **New**: Screen overlay click — tap anywhere on the stream to move cursor
 - **New**: Two-finger scroll on touchpad
@@ -421,7 +421,7 @@ export NGROK_PATH=/usr/local/bin/ngrok
 - **Improved**: Scroll speed increased (buttons: 5→15, touchpad: 3→12)
 - **Dependencies**: Added `mss`, `Pillow`
 
-### v1.0.0 — Initial Release
+### first upload
 - Token-based WebSocket auth
 - Mouse move (relative), click, double-click, right-click, scroll
 - Keyboard input, hotkey combos
@@ -443,11 +443,9 @@ export NGROK_PATH=/usr/local/bin/ngrok
 ## Roadmap / Contributing
 
 - Multi-monitor screen capture support
-- Clipboard sync (copy/paste between devices)
-- File transfer (drag & drop)
-- iOS Safari optimization
+- Custom domain support (add alternatives to ngrok)
+- - File transfer (drag & drop)
 - Docker image for one-liner deploy
-- Custom domain support (replace ngrok)
 - Audio streaming
 - Keyboard layout selection
 
