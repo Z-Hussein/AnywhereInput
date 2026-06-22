@@ -126,8 +126,12 @@ def generate_terminal_qr(connection_url: str, token_short: str = "") -> None:
             inner = " "*pad + line
             right_pad = max_w - len(line)
             full_line = inner + " "*right_pad
-            print("|" + full_line + "|")
+            try:
+                print("|" + full_line + "|")
+            except UnicodeEncodeError:
+                print("|" + full_line.replace('\u2588', '##') + "|")
         print("|" + " "*(max_w+pad*2) + "|")
+
         print(f"|  URL: {connection_url:<{max_w+pad-6}}  |")
         print("+" + "-" * (max_w + pad*2 + 2) + "+")
 
