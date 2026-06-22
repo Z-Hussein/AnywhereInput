@@ -48,8 +48,8 @@ parser = argparse.ArgumentParser(
     description="AnywhereInput Server",
     epilog="Example: python secure_server.py --port 9000 --token-file ./my_tokens.json -v"
 )
-parser.add_argument("--port", type=int, default=8008,
-    help="HTTP port for the server (default: 8008)")
+parser.add_argument("--port", type=int, default=8080,
+    help="HTTP port for the server (default: 8080)")
 parser.add_argument("--bind", default="0.0.0.0",
     help="Bind address (default: 0.0.0.0, use :: for IPv6)")
 parser.add_argument("--token-file", type=str, default=None,
