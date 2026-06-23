@@ -1,4 +1,4 @@
-# AnywhereInput
+# AnywhereInput [AnywhereInput](https://www.anywhereinput.com)
 
 > **Control your Windows, Linux, or macOS PC from any phone, tablet, or browser. No app install, no account, no cloud dependency.**
 
