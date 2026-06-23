@@ -66,3 +66,42 @@ Thumbs.db
 
 # MD files
 PUBLISH_CHECKLIST.md
+
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+
+# Tokens & secrets
+trusted_tokens.json
+*.pem
+*.key
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tunnel binaries (auto-downloaded or user-placed)
+cloudflared
+cloudflared.exe
+ngrok
+ngrok.exe
+zrok
+zrok.exe
+zrok2
+zrok2.exe
+
+# Logs
+*.log
