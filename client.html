@@ -61,7 +61,7 @@
   }
   #screen-placeholder .icon {
     font-size: 48px;
-    margin-bottom: 12px;
+    margin-bottom: 0px;
     opacity: 0.5;
   }
   #screen-fps {
@@ -566,7 +566,7 @@
       Keyboard
     </button>
     <button class="btn" id="btnSettings" title="Settings">
-      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L3.16 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59-.22L3.16 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
       Settings
     </button>
     <button class="btn danger" id="btnDisconnect" title="Disconnect">
@@ -962,10 +962,26 @@ function startFpsCounter() {
 // ─── Screen Overlay Click (Normal Mode Only) ──────────────────────────────
 screenOverlay.addEventListener('click', (e) => {
   if (!connected || fullDisplayMode) return;  // Skip in full display mode
-  const rect = screenOverlay.getBoundingClientRect();
-  const x = (e.clientX - rect.left) / rect.width;
-  const y = (e.clientY - rect.top) / rect.height;
-  send({ type: 'move', mode: 'absolute', dx: x, dy: y });
+
+  // Calculate actual image position and scale to account for object-fit: contain
+  const imgRect = screenImg.getBoundingClientRect();
+  const overlayRect = screenOverlay.getBoundingClientRect();
+
+  // If image is not visible or has zero size, fallback to overlay-relative coords
+  if (imgRect.width === 0 || imgRect.height === 0) {
+    const x = (e.clientX - overlayRect.left) / overlayRect.width;
+    const y = (e.clientY - overlayRect.top) / overlayRect.height;
+    send({ type: 'move', mode: 'absolute', dx: x, dy: y });
+  } else {
+    // Calculate position relative to the actual image
+    const x = (e.clientX - imgRect.left) / imgRect.width;
+    const y = (e.clientY - imgRect.top) / imgRect.height;
+    // Clamp to [0,1] range in case touch is slightly outside image bounds
+    const clampedX = Math.max(0, Math.min(1, x));
+    const clampedY = Math.max(0, Math.min(1, y));
+    send({ type: 'move', mode: 'absolute', dx: clampedX, dy: clampedY });
+  }
+
   if (tapToClick) {
     send({ type: 'click', button: 'left', clicks: 1 });
   }
@@ -1298,9 +1314,27 @@ document.addEventListener('fullscreenchange', () => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function getNormCoords(touch, rect) {
+  // In full display mode, we need to account for the actual image position and scale
+  // due to object-fit: contain and transform: scale()
+  const img = screenImg;
+  const imgRect = img.getBoundingClientRect();
+
+  // If image is not visible or has zero size, fallback to overlay-relative coords
+  if (imgRect.width === 0 || imgRect.height === 0) {
+    return {
+      x: Math.max(0, Math.min(1, touch.clientX / rect.width)),
+      y: Math.max(0, Math.min(1, touch.clientY / rect.height))
+    };
+  }
+
+  // Calculate position relative to the actual image
+  const x = (touch.clientX - imgRect.left) / imgRect.width;
+  const y = (touch.clientY - imgRect.top) / imgRect.height;
+
+  // Clamp to [0,1] range in case touch is slightly outside image bounds
   return {
-    x: Math.max(0, Math.min(1, touch.clientX / rect.width)),
-    y: Math.max(0, Math.min(1, touch.clientY / rect.height))
+    x: Math.max(0, Math.min(1, x)),
+    y: Math.max(0, Math.min(1, y))
   };
 }
 
