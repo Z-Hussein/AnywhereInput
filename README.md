@@ -16,13 +16,13 @@ Every remote control tool forces you through something:
 | **VNC / RDP** | Port forwarding, firewall rules, VPN setup |
 | **Dedicated apps** | App store, permissions, updates |
 
-AnywhereInput does none of that. Open a browser, paste a link, control your PC. The server is yours. The connection is direct. The client is the web.
+[AnywhereInput](https://www.anywhereinput.com) does none of that. Open a browser, paste a link, control your PC. The server is yours. The connection is direct. The client is the web.
 
 ---
 
 ## Compare
 
-| | AnywhereInput | TeamViewer | Chrome RDP | VNC |
+| | [AnywhereInput](https://www.anywhereinput.com) | TeamViewer | Chrome RDP | VNC |
 |---|:---:|:---:|:---:|:---:|
 | App install | ✅ None | ❌ Required | ❌ Required | ❌ Required |
 | Account | ✅ None | ❌ Required | ❌ Google | ✅ None |
