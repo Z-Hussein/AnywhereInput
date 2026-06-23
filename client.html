@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>AnywhereInput - Remote Control</title>
+<title>AnywhereInput - Remote Control - Creator: Z-Hussein</title>
 <style>
   :root {
     --bg: #0d1117;
@@ -35,7 +35,7 @@
     flex-direction: column;
   }
 
-  /* ─── Screen Stream (NEW) ────────────────────────────────── */
+  /* ─── Screen Stream ──────────────────────────────────────── */
   #screen-container {
     position: relative;
     flex: 1;
@@ -317,59 +317,9 @@
   }
   #backdrop.open { display: block; }
 
-
-  /* ─── Full Screen Mode Controls ───────────────────────────── */
-  #fullscreen-controls {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 8px 12px;
-    background: rgba(13, 17, 23, 0.9);
-    border-top: 1px solid var(--border);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    z-index: 1001;
-    backdrop-filter: blur(8px);
-  }
-  #app.full-display #fullscreen-controls {
-    display: flex;
-  }
-  #fullscreen-controls .fs-btn {
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-    color: var(--text);
-    font-size: 13px;
-    cursor: pointer;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  #fullscreen-controls .fs-btn:active {
-    background: var(--border);
-  }
-  #fullscreen-controls .fs-btn svg {
-    width: 16px;
-    height: 16px;
-    fill: currentColor;
-  }
-  #fs-scale-slider {
-    width: 120px;
-    accent-color: var(--accent);
-  }
-  #fs-scale-value {
-    min-width: 36px;
-    text-align: right;
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-
-  /* Full display layout */
+  /* ════════════════════════════════════════════════════════════
+     FULL DISPLAY MODE
+     ════════════════════════════════════════════════════════════ */
   #app.full-display {
     position: fixed;
     inset: 0;
@@ -379,35 +329,108 @@
   #app.full-display #screen-container {
     position: fixed;
     inset: 0;
-    bottom: 56px; /* Space for controls bar */
     z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: auto;
+    height: 100vh;
+    width: 100vw;
+    background: #000;
+    overflow: hidden;
   }
   #app.full-display #screen-img {
-    max-width: 100%;
-    max-height: 100%;
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
     object-fit: contain;
-    transition: transform 0.15s ease;
+    transform-origin: center center;
+    transition: transform 0.2s ease;
+    display: block !important;
   }
   #app.full-display #toolbar,
   #app.full-display #touchpad,
+  #app.full-display #keyboard-panel,
   #app.full-display #bottom-bar,
-  #app.full-display #status-bar {
+  #app.full-display #status-bar,
+  #app.full-display #screen-placeholder {
     display: none !important;
   }
-  /* Keyboard panel can appear over fullscreen */
-  #app.full-display #keyboard-panel.open {
-    display: flex;
+
+  /* Float exit button */
+  #float-exit {
     position: fixed;
-    bottom: 56px;
-    left: 0;
-    right: 0;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(31, 111, 235, 0.9);
+    border: 2px solid var(--accent);
+    color: #fff;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1001;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.3s ease;
+    transform: scale(0.8);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+  }
+  #float-exit.visible {
+    opacity: 0.85;
+    pointer-events: auto;
+    transform: scale(1);
+  }
+  #float-exit.visible:active {
+    opacity: 1;
+    transform: scale(0.92);
+    background: var(--accent);
+  }
+
+  /* Fullscreen hint overlay */
+  #fullscreen-hint {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    text-align: center;
     z-index: 1002;
-    max-height: 40vh;
-    overflow-y: auto;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    white-space: nowrap;
+  }
+  #fullscreen-hint.show {
+    opacity: 1;
+  }
+
+  /* Connection status dot (visible in full display) */
+  #conn-dot {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--danger);
+    z-index: 1001;
+    transition: background 0.3s;
+    box-shadow: 0 0 6px currentColor;
+    display: none;
+  }
+  #conn-dot.connected { background: var(--success); }
+  #conn-dot.connecting { background: var(--warning); animation: pulse 1s infinite; }
+  #app.full-display #conn-dot { display: block; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
 
   /* ─── Responsive ───────────────────────────────────────────── */
@@ -416,13 +439,14 @@
   }
 </style>
 <base target="_blank">
-<base target="_blank">
-<base target="_blank">
 </head>
 <body>
 
 <!-- Status Bar -->
 <div id="status-bar" class="disconnected">Disconnected</div>
+
+<!-- Connection Status Dot (shows in full display) -->
+<div id="conn-dot"></div>
 
 <!-- Connection Panel -->
 <div id="connect-panel">
@@ -431,7 +455,7 @@
 
   <div class="input-group">
     <label>Server URL</label>
-    <input type="text" id="urlInput" placeholder="192.168.1.5 or ngrok url" value="">
+    <input type="text" id="urlInput" placeholder="192.168.1.5 or tunnel url" value="">
   </div>
   <div class="input-group">
     <label>Port</label>
@@ -533,6 +557,10 @@
 
   <!-- Bottom Bar -->
   <div id="bottom-bar">
+    <button class="btn" id="btnFullscreen" title="Full Display Mode">
+      <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+      Fullscreen
+    </button>
     <button class="btn" id="btnKeyboard" title="Toggle Keyboard">
       <svg viewBox="0 0 24 24"><path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2zM7 17H5v-2h2v2z"/></svg>
       Keyboard
@@ -582,14 +610,30 @@
   </div>
 
   <div class="setting-row">
+    <span class="setting-label">Display Scale</span>
+    <div class="setting-value">
+      <input type="range" id="displayScale" min="30" max="150" step="5" value="100">
+      <span id="displayScaleValue" style="min-width:40px; text-align:right; font-variant-numeric:tabular-nums;">100%</span>
+    </div>
+  </div>
+
+  <div class="setting-row">
     <span class="setting-label">Connection</span>
     <span id="connInfo" style="font-size:13px; color:var(--text-muted);">--</span>
   </div>
 </div>
 
+<!-- Full Display Exit Button -->
+<div id="float-exit" title="Exit Full Display">🔲</div>
+
+<!-- Fullscreen Hint Overlay -->
+<div id="fullscreen-hint">
+  👆 Tap to show controls &nbsp;·&nbsp; 👆👆 Double-tap to click &nbsp;·&nbsp; 👆 Hold for right-click
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════════════════════
-// ANYWHEREINPUT CLIENT v2 — with Screen Capture
+// ANYWHEREINPUT CLIENT v3 — Best of Both Worlds
 // ═══════════════════════════════════════════════════════════════════════════
 
 const $ = id => document.getElementById(id);
@@ -602,20 +646,93 @@ let screenEnabled = true;
 let showFps = false;
 let tapToClick = true;
 let longPressRightClick = true;
+let displayScale = 100;
 let serverScreenW = 1920, serverScreenH = 1080;
 let lastFrameTime = 0;
 let frameCount = 0;
 let fpsInterval = null;
 let screenWatchdog = null;
 let pingInterval = null;
-let debugMode = false; // Set to true for console logging
+let debugMode = false;
 
-// Touch state
+// Reconnection state
+let reconnectAttempts = 0;
+let reconnectTimer = null;
+const MAX_RECONNECT_ATTEMPTS = 10;
+const RECONNECT_BASE_DELAY = 1000;
+const RECONNECT_MAX_DELAY = 30000;
+let wasConnected = false;
+let connectionUrl = null;
+let connectionToken = null;
+
+// Full display state
+let fullDisplayMode = false;
+let floatExitTimeout = null;
+
+// Touch state (normal mode)
 let touchStartX = 0, touchStartY = 0;
 let touchStartTime = 0;
 let isDragging = false;
 let longPressTimer = null;
 let longPressTriggered = false;
+
+// Full display touch state
+let fdTouchStartX = 0, fdTouchStartY = 0;
+let fdTouchStartTime = 0;
+let fdIsDragging = false;
+let fdLongPressTimer = null;
+let fdLongPressTriggered = false;
+let fdLastTapTime = 0;
+
+// ─── Persistent Settings ────────────────────────────────────────────────────
+const SETTINGS_KEY = 'anywhereinput_settings';
+
+function loadSettings() {
+  try {
+    const saved = localStorage.getItem(SETTINGS_KEY);
+    if (saved) {
+      const s = JSON.parse(saved);
+      mouseSpeed = s.mouseSpeed ?? 1.5;
+      screenEnabled = s.screenEnabled ?? true;
+      showFps = s.showFps ?? false;
+      tapToClick = s.tapToClick ?? true;
+      longPressRightClick = s.longPressRightClick ?? true;
+      displayScale = s.displayScale ?? 100;
+      if (s.serverUrl) $('urlInput').value = s.serverUrl;
+      if (s.serverPort) $('portInput').value = s.serverPort;
+      if (s.serverToken) $('tokenInput').value = s.serverToken;
+
+      $('sensitivity').value = mouseSpeed;
+      $('sensValue').textContent = mouseSpeed.toFixed(1) + 'x';
+      $('toggleScreen').classList.toggle('on', screenEnabled);
+      $('toggleFps').classList.toggle('on', showFps);
+      $('toggleTapClick').classList.toggle('on', tapToClick);
+      $('toggleLongPress').classList.toggle('on', longPressRightClick);
+      $('displayScale').value = displayScale;
+      $('displayScaleValue').textContent = displayScale + '%';
+    }
+  } catch (e) {
+    console.warn('[Settings] Failed to load:', e);
+  }
+}
+
+function saveSettings() {
+  try {
+    const s = {
+      mouseSpeed, screenEnabled, showFps, tapToClick,
+      longPressRightClick, displayScale,
+      serverUrl: $('urlInput').value,
+      serverPort: $('portInput').value,
+      serverToken: $('tokenInput').value,
+      savedAt: Date.now(),
+    };
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  } catch (e) {
+    console.warn('[Settings] Failed to save:', e);
+  }
+}
+
+loadSettings();
 
 // ─── DOM refs ───────────────────────────────────────────────────────────────
 const connectPanel = $('connect-panel');
@@ -629,13 +746,19 @@ const screenOverlay = $('screen-overlay');
 const keyboardPanel = $('keyboard-panel');
 const settingsPanel = $('settings-panel');
 const backdrop = $('backdrop');
-const touchpad = $('touchpad');
 const touchpadArea = $('touchpad-area');
+const connDot = $('conn-dot');
+const floatExit = $('float-exit');
+const fullscreenHint = $('fullscreen-hint');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 function setStatus(text, cls) {
   statusBar.textContent = text;
   statusBar.className = cls;
+  // Update connection dot in full display mode
+  connDot.className = '';
+  if (cls === 'connected') connDot.classList.add('connected');
+  else if (cls === 'connecting') connDot.classList.add('connecting');
 }
 
 function send(cmd) {
@@ -648,17 +771,13 @@ function getWsUrl() {
   const raw = $('urlInput').value.trim();
   const port = $('portInput').value.trim() || '8008';
 
-  // Case 1: User pasted a full URL like https://abc.ngrok-free.app
   if (raw.startsWith('http://') || raw.startsWith('https://')) {
     const url = new URL(raw);
-    // Convert http -> ws, https -> wss
     const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-    // Use the URL's port if present, otherwise no port for standard HTTPS (443)
     const wsPort = url.port ? ':' + url.port : '';
     return `${wsProtocol}//${url.hostname}${wsPort}/ws`;
   }
 
-  // Case 2: User entered just a hostname/IP like 192.168.1.5 or localhost
   const host = raw || window.location.hostname;
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${host}:${port}/ws`;
@@ -669,10 +788,16 @@ function connect() {
   const token = $('tokenInput').value.trim();
   if (!token) { alert('Please enter an access token'); return; }
 
-  setStatus('Connecting...', 'connecting');
-  const url = getWsUrl();
+  saveSettings();
+  connectionUrl = getWsUrl();
+  connectionToken = token;
+  wasConnected = false;
+  reconnectAttempts = 0;
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
 
-  ws = new WebSocket(url);
+  setStatus('Connecting...', 'connecting');
+
+  ws = new WebSocket(connectionUrl);
 
   ws.onopen = () => {
     ws.send(JSON.stringify({
@@ -694,21 +819,77 @@ function connect() {
 
   ws.onclose = () => {
     connected = false;
-    setStatus('Disconnected', 'disconnected');
-    screenImg.style.display = 'none';
-    screenPlaceholder.style.display = 'block';
-    screenStatusText.textContent = 'Disconnected';
-    app.style.display = 'none';
-    connectPanel.classList.remove('hidden');
     if (fpsInterval) clearInterval(fpsInterval);
     if (pingInterval) clearInterval(pingInterval);
+
+    if (!wasConnected) {
+      setStatus('Disconnected', 'disconnected');
+      screenImg.style.display = 'none';
+      screenPlaceholder.style.display = 'block';
+      screenStatusText.textContent = 'Disconnected';
+      app.style.display = 'none';
+      connectPanel.classList.remove('hidden');
+    } else {
+      setStatus('Reconnecting...', 'connecting');
+      attemptReconnect();
+    }
   };
+}
+
+function attemptReconnect() {
+  if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    setStatus('Reconnection failed', 'disconnected');
+    screenImg.style.display = 'none';
+    screenPlaceholder.style.display = 'block';
+    screenStatusText.textContent = 'Connection lost. Tap Connect to retry.';
+    app.style.display = 'none';
+    connectPanel.classList.remove('hidden');
+    wasConnected = false;
+    return;
+  }
+
+  reconnectAttempts++;
+  const delay = Math.min(RECONNECT_BASE_DELAY * Math.pow(2, reconnectAttempts - 1), RECONNECT_MAX_DELAY);
+  setStatus(`Reconnecting in ${(delay/1000).toFixed(1)}s (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`, 'connecting');
+
+  reconnectTimer = setTimeout(() => {
+    if (!connectionUrl || !connectionToken) return;
+
+    setStatus('Connecting...', 'connecting');
+    ws = new WebSocket(connectionUrl);
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        type: 'auth',
+        token: connectionToken,
+        name: 'browser-client',
+        screen: screenEnabled,
+      }));
+    };
+
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      handleMessage(msg);
+    };
+
+    ws.onerror = () => {};
+
+    ws.onclose = () => {
+      connected = false;
+      if (fpsInterval) clearInterval(fpsInterval);
+      if (pingInterval) clearInterval(pingInterval);
+      attemptReconnect();
+    };
+  }, delay);
 }
 
 function handleMessage(msg) {
   switch (msg.type) {
     case 'handshake_ack':
       connected = true;
+      wasConnected = true;
+      reconnectAttempts = 0;
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
       serverScreenW = msg.screen_width || 1920;
       serverScreenH = msg.screen_height || 1080;
       setStatus(`Connected • ${serverScreenW}×${serverScreenH}`, 'connected');
@@ -722,7 +903,7 @@ function handleMessage(msg) {
       } else {
         screenStatusText.textContent = 'Screen capture not available on server';
       }
-      // Start keepalive ping every 10 seconds to prevent timeout
+
       if (pingInterval) clearInterval(pingInterval);
       pingInterval = setInterval(() => {
         if (ws && ws.readyState === WebSocket.OPEN) {
@@ -733,22 +914,18 @@ function handleMessage(msg) {
 
     case 'screen':
       if (!screenEnabled) break;
-      // Update screen image with new frame
-      // Add cache-busting timestamp so browser always re-renders
-      const url = 'data:image/jpeg;base64,' + msg.data;
-      screenImg.src = url;
+      screenImg.src = 'data:image/jpeg;base64,' + msg.data;
       screenImg.style.display = 'block';
       screenPlaceholder.style.display = 'none';
       screenFps.style.display = showFps ? 'block' : 'none';
       frameCount++;
       lastFrameTime = performance.now();
-      // Reset watchdog
+
       if (screenWatchdog) clearTimeout(screenWatchdog);
       screenWatchdog = setTimeout(() => {
         if (screenEnabled && connected) {
           screenStatusText.textContent = 'Screen stream stalled — retrying...';
           screenPlaceholder.style.display = 'block';
-          // Auto-retry: toggle screen off and back on to resubscribe
           send({ type: 'screen_toggle', enabled: false });
           setTimeout(() => {
             if (screenEnabled && connected) {
@@ -768,6 +945,9 @@ function handleMessage(msg) {
 }
 
 function disconnect() {
+  wasConnected = false;
+  reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   if (ws) ws.close();
 }
 
@@ -779,9 +959,9 @@ function startFpsCounter() {
   }, 1000);
 }
 
-// ─── Screen Overlay Click (Absolute Positioning) ──────────────────────────
+// ─── Screen Overlay Click (Normal Mode Only) ──────────────────────────────
 screenOverlay.addEventListener('click', (e) => {
-  if (!connected) return;
+  if (!connected || fullDisplayMode) return;  // Skip in full display mode
   const rect = screenOverlay.getBoundingClientRect();
   const x = (e.clientX - rect.left) / rect.width;
   const y = (e.clientY - rect.top) / rect.height;
@@ -824,11 +1004,7 @@ touchpadArea.addEventListener('touchmove', (e) => {
     touchStartX = t.clientX;
     touchStartY = t.clientY;
   } else if (e.touches.length === 2) {
-    // Two-finger scroll
-    const t1 = e.touches[0], t2 = e.touches[1];
-    const midY = (t1.clientY + t2.clientY) / 2;
-    const prevMidY = (touchStartY + (e.touches[1]?.clientY || touchStartY)) / 2; // rough
-    // Simplified: use first finger delta as scroll proxy
+    const t1 = e.touches[0];
     const dy = t1.clientY - touchStartY;
     if (Math.abs(dy) > 10) {
       send({ type: 'scroll', amount: dy > 0 ? -3 : 3 });
@@ -862,62 +1038,29 @@ $('btnKeyboard').addEventListener('click', () => {
   keyboardPanel.classList.toggle('open', kbOpen);
   $('btnKeyboard').classList.toggle('active', kbOpen);
   if (kbOpen) {
-    setTimeout(() => {
-      textInput.value = '';
-      lastSentLength = 0;
-      textInput.focus();
-    }, 100);
+    setTimeout(() => { $('text-input').value = ''; $('text-input').focus(); }, 100);
   }
 });
 
-// ─── Live Keyboard Typing ─────────────────────────────────────────────────
-// HYBRID APPROACH: Works for both physical keyboards and mobile virtual keyboards.
-// 
-// Mobile virtual keyboards are tricky:
-// - Some fire keydown, some don't
-// - Some fire beforeinput, some don't  
-// - input event always fires but can double-fire with autocorrect
-//
-// Strategy:
-// 1. Use 'beforeinput' as PRIMARY (captures intent before value changes)
-// 2. Use 'keydown' as SECONDARY for special keys (Enter, Backspace, arrows)
-// 3. Use 'input' as FALLBACK with deduplication (catches everything else)
-// 4. Clear input after each keystroke to prevent accumulation
-
 const textInput = $('text-input');
-
-// Map JS key names to server key names
 const KEY_MAP = {
-  'Enter': 'enter',
-  'Backspace': 'backspace',
-  'Tab': 'tab',
-  'Escape': 'esc',
-  'ArrowUp': 'up',
-  'ArrowDown': 'down',
-  'ArrowLeft': 'left',
-  'ArrowRight': 'right',
-  'Delete': 'delete',
-  'Home': 'home',
-  'End': 'end',
-  'PageUp': 'pageup',
-  'PageDown': 'pagedown',
+  'Enter': 'enter', 'Backspace': 'backspace', 'Tab': 'tab',
+  'Escape': 'esc', 'ArrowUp': 'up', 'ArrowDown': 'down',
+  'ArrowLeft': 'left', 'ArrowRight': 'right',
+  'Delete': 'delete', 'Home': 'home', 'End': 'end',
+  'PageUp': 'pageup', 'PageDown': 'pagedown',
 };
 
-// Deduplication: track recently sent characters by timestamp
 let lastSentTime = 0;
 let lastSentChar = '';
-const DEBOUNCE_MS = 50; // Minimum ms between identical characters
+const DEBOUNCE_MS = 50;
 
 function sendChar(ch) {
   const now = Date.now();
-  // Debounce: if same char sent too recently, skip it
-  if (ch === lastSentChar && (now - lastSentTime) < DEBOUNCE_MS) {
-    return;
-  }
+  if (ch === lastSentChar && (now - lastSentTime) < DEBOUNCE_MS) return;
   lastSentChar = ch;
   lastSentTime = now;
   send({ type: 'key', key: ch });
-  // Visual feedback
   textInput.style.borderColor = 'var(--success)';
   setTimeout(() => { textInput.style.borderColor = ''; }, 80);
 }
@@ -931,10 +1074,9 @@ function sendSpecial(keyName) {
   }
 }
 
-// PRIMARY: beforeinput captures virtual keyboard characters reliably
 textInput.addEventListener('beforeinput', (e) => {
   if (e.inputType === 'insertText' && e.data) {
-    e.preventDefault(); // Stop it from entering the input
+    e.preventDefault();
     sendChar(e.data);
   } else if (e.inputType === 'insertLineBreak') {
     e.preventDefault();
@@ -945,21 +1087,9 @@ textInput.addEventListener('beforeinput', (e) => {
   }
 });
 
-// SECONDARY: keydown for special keys and physical keyboards
 textInput.addEventListener('keydown', (e) => {
-  // Let beforeinput handle single characters (don't double-send)
-  if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
-    // On desktop, keydown fires before beforeinput. If beforeinput
-    // will handle this, we should not send here. But we can't know
-    // that yet. So we send here AND prevent default to stop beforeinput.
-    // Actually, let's rely on beforeinput for characters and only use
-    // keydown for special keys.
-    return;
-  }
-
+  if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) return;
   e.preventDefault();
-
-  // Modifier combinations
   if (e.ctrlKey && e.key.length === 1) {
     send({ type: 'hotkey', keys: ['ctrl', e.key.toLowerCase()] });
     return;
@@ -968,22 +1098,29 @@ textInput.addEventListener('keydown', (e) => {
     send({ type: 'hotkey', keys: ['alt', e.key.toLowerCase()] });
     return;
   }
-
-  // Special keys
   sendSpecial(e.key);
 });
 
-// FALLBACK: input event catches anything that slips through
-// We deduplicate by comparing current value to expected
 textInput.addEventListener('input', (e) => {
   const val = textInput.value;
-  if (val.length === 1) {
-    // Single character appeared — send it (if beforeinput didn't catch it)
-    sendChar(val);
-  }
-  // Always clear to prevent accumulation
+  if (val.length === 1) sendChar(val);
   textInput.value = '';
-});// ─── Settings ───────────────────────────────────────────────────────────────
+});
+
+// Keyboard panel hotkey buttons
+document.querySelectorAll('.kb-key').forEach(key => {
+  key.addEventListener('click', () => {
+    const hotkey = key.dataset.hotkey;
+    const k = key.dataset.key;
+    if (hotkey) {
+      try { send({ type: 'hotkey', keys: JSON.parse(hotkey) }); } catch(e) {}
+    } else if (k) {
+      send({ type: 'key', key: k });
+    }
+  });
+});
+
+// ─── Settings ───────────────────────────────────────────────────────────────
 let settingsOpen = false;
 $('btnSettings').addEventListener('click', () => {
   settingsOpen = !settingsOpen;
@@ -997,10 +1134,10 @@ backdrop.addEventListener('click', () => {
   backdrop.classList.remove('open');
 });
 
-// Toggle: Screen Capture
 $('toggleScreen').addEventListener('click', function() {
   screenEnabled = !screenEnabled;
   this.classList.toggle('on', screenEnabled);
+  saveSettings();
   send({ type: 'screen_toggle', enabled: screenEnabled });
   if (!screenEnabled) {
     screenImg.style.display = 'none';
@@ -1011,30 +1148,47 @@ $('toggleScreen').addEventListener('click', function() {
   }
 });
 
-// Toggle: FPS
 $('toggleFps').addEventListener('click', function() {
   showFps = !showFps;
   this.classList.toggle('on', showFps);
+  saveSettings();
   screenFps.style.display = showFps ? 'block' : 'none';
 });
 
-// Toggle: Tap to Click
 $('toggleTapClick').addEventListener('click', function() {
   tapToClick = !tapToClick;
   this.classList.toggle('on', tapToClick);
+  saveSettings();
 });
 
-// Toggle: Long Press
 $('toggleLongPress').addEventListener('click', function() {
   longPressRightClick = !longPressRightClick;
   this.classList.toggle('on', longPressRightClick);
+  saveSettings();
 });
 
-// Sensitivity slider
 $('sensitivity').addEventListener('input', (e) => {
   mouseSpeed = parseFloat(e.target.value);
   $('sensValue').textContent = mouseSpeed.toFixed(1) + 'x';
+  saveSettings();
 });
+
+// Display Scale
+function updateDisplayScale() {
+  displayScale = parseInt($('displayScale').value);
+  $('displayScaleValue').textContent = displayScale + '%';
+  const scale = displayScale / 100;
+  if (fullDisplayMode) {
+    screenImg.style.transform = `scale(${scale})`;
+  } else {
+    screenImg.style.maxWidth = displayScale + '%';
+    screenImg.style.maxHeight = displayScale + '%';
+    screenImg.style.transform = '';
+  }
+  saveSettings();
+}
+
+$('displayScale').addEventListener('input', updateDisplayScale);
 
 // ─── Connection Panel Events ────────────────────────────────────────────────
 $('connectBtn').addEventListener('click', connect);
@@ -1042,17 +1196,10 @@ $('btnDisconnect').addEventListener('click', disconnect);
 
 // Auto-connect from URL params
 const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.has('token')) {
-  $('tokenInput').value = urlParams.get('token');
-}
-if (urlParams.has('host')) {
-  $('urlInput').value = urlParams.get('host');
-}
-if (urlParams.has('port')) {
-  $('portInput').value = urlParams.get('port');
-}
+if (urlParams.has('token')) $('tokenInput').value = urlParams.get('token');
+if (urlParams.has('host')) $('urlInput').value = urlParams.get('host');
+if (urlParams.has('port')) $('portInput').value = urlParams.get('port');
 
-// Enter key on inputs triggers connect
 ['urlInput', 'portInput', 'tokenInput'].forEach(id => {
   $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') connect(); });
 });
@@ -1066,81 +1213,130 @@ document.addEventListener('touchend', (e) => {
 }, false);
 
 // ═══════════════════════════════════════════════════════════════════════════
-// FULL SCREEN MODE - Touchscreen Experience
+// FULL DISPLAY MODE
 // ═══════════════════════════════════════════════════════════════════════════
 
-let fullDisplayMode = false;
-let fsScale = 100;
+function showExitButton() {
+  floatExit.classList.add('visible');
+  if (floatExitTimeout) clearTimeout(floatExitTimeout);
+  floatExitTimeout = setTimeout(() => {
+    floatExit.classList.remove('visible');
+  }, 3000);
+}
 
-const fsControls = $('fullscreen-controls');
-const fsScaleSlider = $('fs-scale-slider');
-const fsScaleValue = $('fs-scale-value');
-const fsKeyboard = $('fs-keyboard');
-const fsExit = $('fs-exit');
+function showFullscreenHint() {
+  fullscreenHint.classList.add('show');
+  setTimeout(() => fullscreenHint.classList.remove('show'), 3500);
+}
 
-// Fullscreen toggle
-function toggleFullDisplay() {
-  fullDisplayMode = !fullDisplayMode;
-  app.classList.toggle('full-display', fullDisplayMode);
+async function enterFullDisplay() {
+  fullDisplayMode = true;
+  app.classList.add('full-display');
 
-  if (fullDisplayMode) {
-    // Enter fullscreen
-    applyFsScale();
-  } else {
-    // Exit fullscreen - reset
-    screenImg.style.transform = '';
-    keyboardPanel.classList.remove('open');
-    kbOpen = false;
+  // Request browser fullscreen
+  try {
+    const el = document.documentElement;
+    if (el.requestFullscreen) await el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+    else if (el.msRequestFullscreen) await el.msRequestFullscreen();
+  } catch (err) {
+    console.log('[Fullscreen] API not available, using CSS fallback');
+  }
+
+  screenImg.style.display = 'block';
+  screenPlaceholder.style.display = 'none';
+  updateDisplayScale();
+  showExitButton();
+  showFullscreenHint();
+
+  if (screen.orientation && screen.orientation.lock) {
+    try { await screen.orientation.lock('landscape'); } catch(e) {}
   }
 }
 
-// Scale control
-function applyFsScale() {
-  fsScale = parseInt(fsScaleSlider.value);
-  fsScaleValue.textContent = fsScale + '%';
-  const scale = fsScale / 100;
-  screenImg.style.transform = `scale(${scale})`;
+function exitFullDisplay() {
+  fullDisplayMode = false;
+  app.classList.remove('full-display');
+
+  try {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    else if (document.msExitFullscreen) document.msExitFullscreen();
+  } catch (err) {}
+
+  if (screen.orientation && screen.orientation.unlock) {
+    try { screen.orientation.unlock(); } catch(e) {}
+  }
+
+  screenImg.style.maxWidth = '';
+  screenImg.style.maxHeight = '';
+  screenImg.style.transform = '';
+  floatExit.classList.remove('visible');
+  if (floatExitTimeout) clearTimeout(floatExitTimeout);
 }
 
-fsScaleSlider.addEventListener('input', applyFsScale);
+function toggleFullDisplay() {
+  if (fullDisplayMode) exitFullDisplay();
+  else enterFullDisplay();
+}
 
-// Keyboard button in fullscreen
-fsKeyboard.addEventListener('click', () => {
-  kbOpen = !kbOpen;
-  keyboardPanel.classList.toggle('open', kbOpen);
-  if (kbOpen) {
-    setTimeout(() => {
-      textInput.value = '';
-      textInput.focus();
-    }, 100);
+$('btnFullscreen').addEventListener('click', toggleFullDisplay);
+floatExit.addEventListener('click', (e) => {
+  e.stopPropagation();
+  exitFullDisplay();
+});
+
+// Sync fullscreen state if user exits via browser UI
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && fullDisplayMode) {
+    exitFullDisplay();
   }
 });
 
-// Exit button
-fsExit.addEventListener('click', toggleFullDisplay);
+// ═══════════════════════════════════════════════════════════════════════════
+// FULL-DISPLAY TOUCH HANDLERS (screen overlay)
+// ═══════════════════════════════════════════════════════════════════════════
 
-// Add fullscreen button to bottom bar
-const btnFullscreen = document.createElement('button');
-btnFullscreen.className = 'btn';
-btnFullscreen.id = 'btnFullscreen';
-btnFullscreen.title = 'Full Screen Mode';
-btnFullscreen.innerHTML = `
-  <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
-  Fullscreen
+function getNormCoords(touch, rect) {
+  return {
+    x: Math.max(0, Math.min(1, touch.clientX / rect.width)),
+    y: Math.max(0, Math.min(1, touch.clientY / rect.height))
+  };
+}
+
+function showTouchFeedback(x, y, type) {
+  const ripple = document.createElement('div');
+  let color, bg;
+  if (type === 'click') { color = 'var(--success)'; bg = 'rgba(63,185,80,0.3)'; }
+  else if (type === 'right') { color = 'var(--danger)'; bg = 'rgba(248,81,73,0.3)'; }
+  else { color = 'var(--accent)'; bg = 'rgba(88,166,255,0.3)'; }
+
+  ripple.style.cssText = `
+    position:fixed; left:${x-25}px; top:${y-25}px;
+    width:50px; height:50px; border-radius:50%;
+    border:2px solid ${color}; background:${bg};
+    pointer-events:none; z-index:9999;
+    animation:fdRipple 0.4s ease-out forwards;
+  `;
+  document.body.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 400);
+}
+
+// Add ripple keyframes once
+const fdRippleStyle = document.createElement('style');
+fdRippleStyle.textContent = `
+  @keyframes fdRipple {
+    0% { transform: scale(0.5); opacity: 1; }
+    100% { transform: scale(2); opacity: 0; }
+  }
 `;
-btnFullscreen.addEventListener('click', toggleFullDisplay);
-$('bottom-bar').insertBefore(btnFullscreen, $('btnSettings'));
-
-// Fullscreen touch gestures
-let fdTouchStartX = 0, fdTouchStartY = 0;
-let fdTouchStartTime = 0;
-let fdIsDragging = false;
-let fdLongPressTimer = null;
-let fdLongPressTriggered = false;
-let fdLastTapTime = 0;
+document.head.appendChild(fdRippleStyle);
 
 screenOverlay.addEventListener('touchstart', (e) => {
-  if (!fullDisplayMode) return;
+  if (!fullDisplayMode || !connected) return;
+  showExitButton();
+
+  if (e.touches.length !== 1) return;
 
   const t = e.touches[0];
   fdTouchStartX = t.clientX;
@@ -1149,21 +1345,23 @@ screenOverlay.addEventListener('touchstart', (e) => {
   fdIsDragging = false;
   fdLongPressTriggered = false;
 
-  if (e.touches.length === 1 && longPressRightClick) {
+  const rect = screenOverlay.getBoundingClientRect();
+  const coords = getNormCoords(t, rect);
+  send({ type: 'move', mode: 'absolute', dx: coords.x, dy: coords.y });
+
+  if (longPressRightClick) {
     fdLongPressTimer = setTimeout(() => {
       fdLongPressTriggered = true;
-      const rect = screenOverlay.getBoundingClientRect();
-      const x = fdTouchStartX / rect.width;
-      const y = fdTouchStartY / rect.height;
-      send({ type: 'move', mode: 'absolute', dx: x, dy: y });
       send({ type: 'right_click' });
       navigator.vibrate?.(50);
+      showTouchFeedback(t.clientX, t.clientY, 'right');
     }, 600);
   }
 }, { passive: true });
 
 screenOverlay.addEventListener('touchmove', (e) => {
-  if (!fullDisplayMode) return;
+  if (!fullDisplayMode || !connected) return;
+  e.preventDefault();
 
   if (e.touches.length === 1) {
     const t = e.touches[0];
@@ -1175,63 +1373,47 @@ screenOverlay.addEventListener('touchmove', (e) => {
       clearTimeout(fdLongPressTimer);
     }
 
-    // Move cursor to finger position
     const rect = screenOverlay.getBoundingClientRect();
-    const x = t.clientX / rect.width;
-    const y = t.clientY / rect.height;
-    send({ type: 'move', mode: 'absolute', dx: x, dy: y });
+    const coords = getNormCoords(t, rect);
+    send({ type: 'move', mode: 'absolute', dx: coords.x, dy: coords.y });
 
   } else if (e.touches.length === 2) {
+    clearTimeout(fdLongPressTimer);
     const t1 = e.touches[0];
     const dy = t1.clientY - fdTouchStartY;
-    if (Math.abs(dy) > 15) {
-      send({ type: 'scroll', amount: dy > 0 ? -12 : 12 });
+    if (Math.abs(dy) > 20) {
+      send({ type: 'scroll', amount: dy > 0 ? -15 : 15 });
       fdTouchStartY = t1.clientY;
     }
-    clearTimeout(fdLongPressTimer);
   }
-}, { passive: true });
+}, { passive: false });
 
 screenOverlay.addEventListener('touchend', (e) => {
-  if (!fullDisplayMode) return;
+  if (!fullDisplayMode || !connected) return;
   clearTimeout(fdLongPressTimer);
 
-  if (e.changedTouches.length === 1 && !fdIsDragging && !fdLongPressTriggered) {
-    const t = e.changedTouches[0];
-    const rect = screenOverlay.getBoundingClientRect();
-    const x = t.clientX / rect.width;
-    const y = t.clientY / rect.height;
+  if (e.changedTouches.length !== 1) return;
+  const t = e.changedTouches[0];
+  const elapsed = Date.now() - fdTouchStartTime;
 
-    send({ type: 'move', mode: 'absolute', dx: x, dy: y });
+  if (!fdIsDragging && !fdLongPressTriggered && elapsed < 400) {
+    const rect = screenOverlay.getBoundingClientRect();
+    const coords = getNormCoords(t, rect);
+    send({ type: 'move', mode: 'absolute', dx: coords.x, dy: coords.y });
 
     const now = Date.now();
     if (now - fdLastTapTime < 300) {
       send({ type: 'double_click' });
+      showTouchFeedback(t.clientX, t.clientY, 'double');
     } else if (tapToClick) {
       send({ type: 'click', button: 'left', clicks: 1 });
+      showTouchFeedback(t.clientX, t.clientY, 'click');
     }
     fdLastTapTime = now;
   }
 }, { passive: true });
 
+console.log('[AnywhereInput] Client v3 loaded. Ready to connect.');
 </script>
-
-<!-- Full Screen Mode Controls -->
-<div id="fullscreen-controls">
-  <button class="fs-btn" id="fs-keyboard" title="Keyboard">
-    <svg viewBox="0 0 24 24"><path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2zM7 17H5v-2h2v2z"/></svg>
-    Keyboard
-  </button>
-  <div style="display:flex;align-items:center;gap:6px;">
-    <span style="font-size:11px;color:var(--text-muted);">Size</span>
-    <input type="range" id="fs-scale-slider" min="50" max="200" step="5" value="100">
-    <span id="fs-scale-value">100%</span>
-  </div>
-  <button class="fs-btn" id="fs-exit" title="Exit Full Screen">
-    <svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
-    Exit
-  </button>
-</div>
-
 </body>
 </html>
