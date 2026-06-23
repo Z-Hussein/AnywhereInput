@@ -57,8 +57,8 @@ parser.add_argument("--token-file", type=str, default=None,
 parser.add_argument("-v", "--verbose", action="store_true",
     help="Enable verbose (DEBUG) logging")
 # NEW optional args for screen capture
-parser.add_argument("--fps", type=int, default=10,
-    help="Screen capture target FPS (default: 10)")
+parser.add_argument("--fps", type=int, default=30,
+    help="Screen capture target FPS (default: 30, min: 1, max: 30)")
 parser.add_argument("--quality", type=int, default=60,
     help="JPEG quality 1-95 (default: 60)")
 parser.add_argument("--scale", type=float, default=0.5,
@@ -159,7 +159,7 @@ class ScreenCaptureEngine:
         self.fps = fps
         self.quality = quality
         self.scale = scale
-        self.frame_interval = 1.0 / fps
+        self.frame_interval = 2.0 / fps
         self.subscribers = set()
         self._lock = threading.Lock()
         self._running = False
