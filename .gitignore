@@ -1,12 +1,4 @@
-# Virtual Environments
-.venv/
-venv/
-env/
-ENV/
-env.bak/
-venv.bak/
-
-# Python
+# ── Python / build artifacts ────────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *$py.class
@@ -31,77 +23,44 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Auto-generated files
-trusted_tokens.json
-*.log
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*.sublime-*
-
-# OS
-.DS_Store
-Thumbs.db
-*.ini
-
-# ngrok binary (optional - uncomment if bundling ngrok.exe)
-# ngrok.exe
-*~
-.DS_Store
-
-# Project specific
-trusted_tokens.json
-*.log
-config.local.json
-ngrok.exe
-ngrok
-
-# OS
-Thumbs.db
-.DS_Store
-
-
-# MD files
-PUBLISH_CHECKLIST.md
-
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
+# ── Virtual environments ────────────────────────────────────────────────────
 .venv/
 venv/
 env/
+ENV/
+env.bak/
+venv.bak/
 
-# Tokens & secrets
-trusted_tokens.json
-*.pem
-*.key
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Tunnel binaries (auto-downloaded or user-placed)
+# ── Tunnel binaries (auto-downloaded or user-placed) ────────────────────────
 cloudflared
 cloudflared.exe
 ngrok
 ngrok.exe
 zrok
-zrok.exe
 zrok2
 zrok2.exe
+zrok.exe
 
-# Logs
-*.log
+# ── Tokens & secrets ────────────────────────────────────────────────────────
+trusted_tokens.json
+*.pem
+*.key
+config/local_settings.yaml
+
+# ── IDE / editor ────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+*~
+
+# ── OS / desktop ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.ini
+
+# ── Project specific ────────────────────────────────────────────────────────
+config.local.json
+PUBLISH_CHECKLIST.md
