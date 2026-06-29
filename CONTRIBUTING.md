@@ -19,7 +19,7 @@ Thank you for your interest in contributing! Here's how you can help:
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.\\.venv\\Scripts\\Activate.ps1
 pip install -r requirements.txt
 ```
 
@@ -47,7 +47,7 @@ pip install -r requirements.txt
 - Follow PEP 8 style guide
 - Add comments for complex logic
 - Keep functions focused and small
-- Test on both Windows and Android if possible
+- Test on both Windows and linux if possible
 
 ## Areas for Contribution
 
