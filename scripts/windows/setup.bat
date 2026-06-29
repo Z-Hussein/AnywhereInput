@@ -2,12 +2,17 @@
 setlocal EnableDelayedExpansion
 
 title AnywhereInput - Windows Setup
-color 0A
 
-echo ============================================
-echo    AnywhereInput - Windows Setup
-echo ============================================
-echo.
+print_banner() {
+    echo -e "${CYAN}"
+    echo "░█▀█░█▀█░█░█░█ ░ █░█░█░█▀▀░█▀▄░█▀▀░▀█▀░█▀█░█▀█░█░█░▀█▀"
+    echo "░█▀█░█░█░░█░░█▄▀▄█░█▀█░█▀▀░█▀▄░█▀▀░░█░░█░█░█▀▀░█░█░░█░"
+    echo "░▀░▀░▀░▀░░▀░░▀░ ░▀ ▀░▀░▀▀▀░▀░▀░▀▀▀░▀▀▀░▀░▀░▀░░░▀▀▀░░▀░.com"
+    echo "  AnywhereInput v1.0.0 — Remote Control Your PC"
+    echo -e "${NC}"
+}
+
+call :print_banner
 
 :: Check for Python
 python --version >nul 2>&1
@@ -44,11 +49,5 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo.
-echo ============================================
-echo    Setup Complete!
-echo ============================================
-echo.
-echo Run 'scripts\windows\run.bat' to start the server.
-echo.
-pause
+call :print_banner
+exit /b 0
