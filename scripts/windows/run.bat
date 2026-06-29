@@ -2,10 +2,19 @@
 setlocal EnableDelayedExpansion
 
 title AnywhereInput - Universal Launcher
-color 0B
-cls
 
-:: Activate venv
+print_banner() {
+    echo -e "${CYAN}"
+    echo "░█▀█░█▀█░█░█░█ ░ █░█░█░█▀▀░█▀▄░█▀▀░▀█▀░█▀█░█▀█░█░█░▀█▀"
+    echo "░█▀█░█░█░░█░░█▄▀▄█░█▀█░█▀▀░█▀▄░█▀▀░░█░░█░█░█▀▀░█░█░░█░"
+    echo "░▀░▀░▀░▀░░▀░░▀░ ░▀ ▀░▀░▀▀▀░▀░▀░▀▀▀░▀▀▀░▀░▀░▀░░░▀▀▀░░▀░.com"
+    echo "  AnywhereInput v1.0.0 — Remote Control Your PC"
+    echo -e "${NC}"
+}
+
+call :print_banner
+
+:: ── Activate venv ─────────────────────────────────────────────────────────
 if exist ".venv\Scripts\activate.bat" (
     call .venv\Scripts\activate.bat
 ) else (
@@ -15,11 +24,7 @@ if exist ".venv\Scripts\activate.bat" (
 )
 
 :menu
-cls
-echo ============================================
-echo    AnywhereInput - Remote Control Server
-echo ============================================
-echo.
+call :print_banner
 echo  Select tunnel provider for remote access:
 echo.
 echo   [1] Cloudflare Tunnel  (Recommended - FREE, no account)
@@ -32,7 +37,6 @@ echo.
 echo   [S] Setup / Repair
 echo   [Q] Quit
 echo.
-echo ============================================
 set /p choice="Enter choice (1-6, S, Q): "
 
 if "%choice%"=="1" goto cloudflare
