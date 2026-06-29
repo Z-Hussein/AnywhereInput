@@ -1,0 +1,39 @@
+# AnywhereInput Default Configuration
+# Override by creating config/local_settings.yaml (gitignored)
+
+server:
+  host: "0.0.0.0"
+  port: 8008
+  debug: false
+
+screen_capture:
+  enabled: true
+  fps: 10
+  quality: 60
+  scale: 0.5
+  show_cursor: true
+
+auth:
+  token_length: 32
+  token_rotation_hotkey: "ctrl+n"
+  auto_generate: true
+
+mouse:
+  sensitivity: 1.0
+  acceleration: false
+
+tunnels:
+  cloudflare:
+    auto_download: true
+    binary_name: "cloudflared"
+  pinggy:
+    ssh_host: "free.pinggy.io"
+    ssh_port: 443
+  zrok2:
+    auto_enable: true
+  ngrok:
+    require_auth: true
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s [%(levelname)s] %(message)s"
