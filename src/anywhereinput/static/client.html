@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0b1220">
+    <title>AnywhereInput - Remote Control</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="login-card">
+                <div class="logo">
+                    <svg width="56" height="56" viewBox="0 0 64 64" fill="none">
+                        <rect width="64" height="64" rx="16" fill="#2563eb"/>
+                        <path d="M20 32h24M32 20v24" stroke="white" stroke-width="4" stroke-linecap="round"/>
+                    </svg>
+                    <h1>AnywhereInput</h1>
+                    <p>Remote control your PC from any browser</p>
+                </div>
+                <form id="connect-form">
+                    <div class="input-group">
+                        <label>Server URL</label>
+                        <input type="text" id="server-url" placeholder="https://xxx.trycloudflare.com or IP:8008" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Access Token</label>
+                        <input type="password" id="access-token" placeholder="Paste token from server" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Connect</button>
+                </form>
+                <div class="connection-status" id="connection-status"></div>
+            </div>
+        </div>
+
+        <!-- Main Control Screen -->
+        <div id="control-screen" class="screen">
+            <!-- Top Bar -->
+            <header class="top-bar">
+                <div class="status-wrap">
+                    <div class="status-indicator" id="status-dot"></div>
+                    <span id="status-text">Connecting...</span>
+                </div>
+                <div class="top-actions">
+                    <button id="btn-keyboard" class="icon-btn" title="Keyboard">⌨️</button>
+                    <button id="btn-settings" class="icon-btn" title="Settings">⚙️</button>
+                    <button id="btn-disconnect" class="icon-btn danger" title="Disconnect">✕</button>
+                </div>
+            </header>
+
+            <!-- Screen Stream -->
+            <div class="screen-container" id="screen-container">
+                <img id="screen-stream" alt="Screen Stream" draggable="false">
+                <!-- Top info bar -->
+                <div class="stream-top-bar" id="stream-top-bar">
+                    <span class="stream-status" id="stream-status-dot">●</span>
+                    <span class="stream-info" id="stream-info"></span>
+                    <span class="stream-monitor" id="stream-monitor"></span>
+                </div>
+                <!-- Bottom info bar -->
+                <div class="stream-bottom-bar" id="stream-bottom-bar">
+                    <span class="stream-mode" id="stream-mode">Mouse</span>
+                    <span class="stream-sensitivity" id="stream-sens"></span>
+                    <span class="fps-counter" id="fps-counter">0 FPS</span>
+                </div>
+                <div class="stream-overlay" id="stream-overlay">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 8v8M8 12h8"/>
+                    </svg>
+                    <p>Paste your token to connect</p>
+                </div>
+            </div>
+
+            <!-- Touchpad Area -->
+            <div class="touchpad-area" id="touchpad">
+                <div class="touchpad-hint" id="touchpad-hint">Drag to move pointer</div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="actions-panel">
+                <div class="actions-grid">
+                    <button class="ctrl-btn" data-action="left-click">Left Click</button>
+                    <button class="ctrl-btn" data-action="right-click">Right Click</button>
+                    <button class="ctrl-btn" data-action="double-click">Double Click</button>
+                    <button class="ctrl-btn" data-action="scroll-up">▲ Scroll</button>
+                    <button class="ctrl-btn" data-action="center">Center</button>
+                    <button class="ctrl-btn" data-action="scroll-down">▼ Scroll</button>
+                </div>
+
+                <div class="actions-row">
+                    <select id="mode-selector" class="mode-selector">
+                        <option value="mouse">Mouse Mode</option>
+                        <option value="keyboard">Keyboard Input</option>
+                        <option value="paint">Paint Mode</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Keyboard Modal -->
+            <div id="keyboard-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>⌨️ Keyboard &amp; Hotkeys</h3>
+                        <button class="close-btn" id="close-keyboard">&times;</button>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="kb-tabs">
+                        <button class="kb-tab active" data-tab="text">Text</button>
+                        <button class="kb-tab" data-tab="shortcuts">Shortcuts</button>
+                        <button class="kb-tab" data-tab="system">System</button>
+                    </div>
+
+                    <!-- Text Tab -->
+                    <div class="kb-tab-content active" id="tab-text">
+                        <input type="text" id="keyboard-input" placeholder="Type here..." autocomplete="off">
+                        <div class="modal-actions">
+                            <button id="send-text" class="btn-primary">Send</button>
+                            <button id="send-enter" class="btn-secondary">Enter</button>
+                            <button id="send-esc" class="btn-secondary">Esc</button>
+                            <button id="send-tab" class="btn-secondary">Tab</button>
+                            <button id="send-backspace" class="btn-secondary">Backspace</button>
+                        </div>
+                    </div>
+
+                    <!-- Shortcuts Tab -->
+                    <div class="kb-tab-content" id="tab-shortcuts">
+                        <div class="hotkey-grid">
+                            <button class="hotkey-btn" data-keys="ctrl,a">Ctrl+A</button>
+                            <button class="hotkey-btn" data-keys="ctrl,c">Ctrl+C</button>
+                            <button class="hotkey-btn" data-keys="ctrl,v">Ctrl+V</button>
+                        </div>
+                        <div class="hotkey-grid">
+                            <button class="hotkey-btn" data-keys="ctrl,z">Ctrl+Z</button>
+                            <button class="hotkey-btn" data-keys="ctrl,y">Ctrl+Y</button>
+                            <button class="hotkey-btn" data-keys="ctrl,x">Ctrl+X</button>
+                        </div>
+                        <div class="hotkey-grid">
+                            <button class="hotkey-btn" data-keys="ctrl,s">Ctrl+S</button>
+                            <button class="hotkey-btn" data-keys="ctrl,f">Ctrl+F</button>
+                            <button class="hotkey-btn" data-keys="ctrl,p">Ctrl+P</button>
+                        </div>
+                    </div>
+
+                    <!-- System Tab -->
+                    <div class="kb-tab-content" id="tab-system">
+                        <div class="hotkey-grid">
+                            <button class="hotkey-btn danger" data-keys="ctrl,alt,delete">Ctrl+Alt+Del</button>
+                        </div>
+                        <div class="hotkey-grid">
+                            <button class="hotkey-btn" data-keys="alt,tab">Alt+Tab</button>
+                            <button class="hotkey-btn" data-keys="win,d">Win+D</button>
+                            <button class="hotkey-btn" data-keys="ctrl,shift,esc">Ctrl+Shift+Esc</button>
+                        </div>
+                        <div class="hotkey-grid">
+                            <button class="hotkey-btn" data-keys="alt,f4">Alt+F4</button>
+                            <button class="hotkey-btn" data-keys="win,e">Win+E</button>
+                            <button class="hotkey-btn" data-keys="win,r">Win+R</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Panel -->
+            <div id="settings-panel" class="side-panel">
+                <div class="panel-header">
+                    <h3>⚙️ Settings</h3>
+                    <button class="close-btn" id="close-settings">&times;</button>
+                </div>
+                <div class="panel-body">
+                    <div class="setting-item">
+                        <label>Screen Capture</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="setting-screen" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item" id="monitor-setting" style="display:none;">
+                        <label>Monitor</label>
+                        <select id="setting-monitor">
+                            <option value="0">🎯 Auto (follow cursor)</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label>Mouse Speed</label>
+                        <div class="slider-wrap">
+                            <input type="range" id="setting-sensitivity" min="0.5" max="3.0" step="0.1" value="1.5">
+                            <span class="value" id="sensitivity-value">1.5x</span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label>Show FPS</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="setting-fps">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>Tap to Click</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="setting-tap-click" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label>Long Press = Right Click</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="setting-long-press" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>
