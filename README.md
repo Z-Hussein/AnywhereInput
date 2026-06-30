@@ -49,8 +49,8 @@ Then pick your tunnel provider from the interactive menu.
 
 | Provider | Cost | Account | Setup | Notes |
 |---|---|---|---|---|
-| **[Cloudflare](https://www.cloudflare.com/)** | Free | ❌ No | Auto-downloaded | Fastest globally, random URL per session |
-| **[Tailscale](https://tailscale.com/)** | Free | ✅ Yes (free) | Install + log in once | Peer-to-peer via tailnet IP — both devices on same tailnet |
+| **[Cloudflare](https://www.cloudflare.com/) Tunnel** | Free | ❌ No | Auto-downloaded | Fastest globally, random URL per session |
+| **Tailscale** | Free | ✅ Yes (free) | Install + log in once | Peer-to-peer via tailnet IP — both devices on same tailnet |
 | **[Pinggy.io](https://pinggy.io/)** | Free | ❌ No | Uses SSH client | 60 min session timeout, works behind firewalls |
 | **[Zrok2](https://docs.zrok.io/)** | Free (5 GB/day) | ✅ Yes | Manual install | Open source, zero-trust architecture |
 | **[ngrok](https://ngrok.com/)** | Free tier | ✅ Yes | Download + config | Reliable, large ecosystem, session limits on free |
