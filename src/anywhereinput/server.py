@@ -78,17 +78,35 @@ class MouseWorker(threading.Thread):
                     elif t == "hotkey":
                         keys = item.get("keys", "")
                         if keys:
-                            # Parse comma-separated keys
+                            # Parse comma-separated keys and clean them
                             if isinstance(keys, str):
-                                keys = keys.split(",")
+                                keys = [k.strip().lower() for k in keys.split(",") if k.strip()]
+                            
                             # Map Windows "win" to macOS "cmd"
                             if platform.system() == "Darwin":
                                 keys = ["cmd" if k == "win" else k for k in keys]
-                            # Execute hotkey
-                            try:
-                                pyautogui.hotkey(*keys)
-                            except Exception as e:
-                                print(f"⚠️  Hotkey {keys} failed: {e}")
+                            
+                            # Map "delete" to proper key name
+                            keys = ["del" if k == "delete" else k for k in keys]
+                            
+                            # Execute hotkey with explicit key press/release for better compatibility
+                            if keys:
+                                try:
+                                    print(f"[Hotkey] Executing: {'+'.join(k.upper() for k in keys)}")
+                                    # Press all modifier keys first
+                                    for key in keys[:-1]:
+                                        pyautogui.keyDown(key)
+                                    import time
+                                    time.sleep(0.05)
+                                    # Press and release the main key
+                                    pyautogui.press(keys[-1])
+                                    time.sleep(0.05)
+                                    # Release all modifier keys
+                                    for key in reversed(keys[:-1]):
+                                        pyautogui.keyUp(key)
+                                    print(f"✅ Hotkey executed: {'+'.join(k.upper() for k in keys)}")
+                                except Exception as e:
+                                    print(f"❌ Hotkey {keys} failed: {e}")
 
                 if mode == "relative" and (dx_total != 0 or dy_total != 0):
                     self.target_x += dx_total
