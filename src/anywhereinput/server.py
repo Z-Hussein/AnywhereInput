@@ -146,7 +146,7 @@ class MouseWorker(threading.Thread):
 
 
 class AnywhereInputServer:
-    def __init__(self, host="0.0.0.0", port=8008, fps=10, quality=60, scale=0.5, no_capture=False, monitor=0):
+    def __init__(self, host="0.0.0.0", port=8008, fps=30, quality=95, scale=1.0, no_capture=False, monitor=0):
         self.host = host
         self.port = port
         self.token_manager = TokenManager()
@@ -293,10 +293,11 @@ class AnywhereInputServer:
         await site.start()
 
         local_url = f"http://{self.host}:{self.port}"
-        print(f"\n\U0001f680 AnywhereInput Server Started")
+        print(f"\n🚀 AnywhereInput Server Started")
         print(f"   Local: {local_url}")
         print(f"   Token: {token}")
         print(f"   Monitors: {self.screen.monitor_count}")
+        print(f"   Stream Quality: {self.screen.quality}/95 | Scale: {self.screen.scale:.1%} | FPS: {self.screen.fps}")
         if self.screen.monitor_count > 1:
             print(f"   Mode: Auto-tracking cursor across {self.screen.monitor_count} monitors")
 
@@ -371,9 +372,9 @@ def main():
     parser = argparse.ArgumentParser(description="AnywhereInput Server")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8008)
-    parser.add_argument("--fps", type=int, default=10)
-    parser.add_argument("--quality", type=int, default=60)
-    parser.add_argument("--scale", type=float, default=0.5)
+    parser.add_argument("--fps", type=int, default=30, help="Frame rate: 1-30 (default: 30 for maximum smoothness)")
+    parser.add_argument("--quality", type=int, default=95, help="JPEG quality: 1-95 (default: 95 for maximum clarity)")
+    parser.add_argument("--scale", type=float, default=1.0, help="Scale factor: 0.1-1.0 (default: 1.0 for full native resolution)")
     parser.add_argument("--no-capture", action="store_true")
     parser.add_argument("--monitor", type=int, default=0)
     parser.add_argument("--tunnel", choices=["cloudflare", "tailscale", "pinggy", "zrok2", "ngrok"])
