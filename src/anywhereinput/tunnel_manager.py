@@ -116,12 +116,15 @@ class CloudflareTunnel(TunnelProvider):
 
     def start(self, local_port: int, on_url: Callable[[str], None]) -> subprocess.Popen:
         if not os.path.isfile(self.binary) and shutil.which(self.binary) is None:
-            print(f"\n❌ cloudflared binary not found at '{self.binary}'")
+            error_msg = f"cloudflared binary not found at '{self.binary}'"
+            print(f"\n❌ {error_msg}")
             print("   Run this project's setup again, or install cloudflared manually:")
             print("     curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared")
             print("     chmod +x cloudflared")
-            sys.exit(1)
+            raise FileNotFoundError(error_msg)
         cmd = [self.binary, "tunnel", "--url", f"http://localhost:{local_port}"]
+        
+        print(f"[Cloudflare] Starting: {' '.join(cmd)}")
         
         # Platform-specific process group creation
         popen_kwargs = {
@@ -136,18 +139,46 @@ class CloudflareTunnel(TunnelProvider):
         else:
             popen_kwargs["preexec_fn"] = os.setsid
         
-        proc = subprocess.Popen(cmd, **popen_kwargs)
+        try:
+            proc = subprocess.Popen(cmd, **popen_kwargs)
+        except Exception as e:
+            error_msg = f"Failed to start cloudflared: {e}"
+            print(f"❌ {error_msg}")
+            raise RuntimeError(error_msg)
 
         def reader():
-            for line in proc.stdout:
-                line = line.strip()
-                if "trycloudflare.com" in line or "https://" in line:
-                    match = re.search(r'https://[a-zA-Z0-9-]+\.trycloudflare\.com', line)
-                    if match:
-                        on_url(match.group(0))
+            try:
+                line_count = 0
+                for line in proc.stdout:
+                    line = line.strip()
+                    if line:
+                        line_count += 1
+                        print(f"[cloudflared] {line}")
+                        if "trycloudflare.com" in line or "https://" in line:
+                            match = re.search(r'https://[a-zA-Z0-9-]+\.trycloudflare\.com', line)
+                            if match:
+                                print(f"✅ [Cloudflare] Tunnel URL: {match.group(0)}")
+                                on_url(match.group(0))
+                if line_count == 0:
+                    print("⚠️  [Cloudflare] No output received from cloudflared")
+                    returncode = proc.poll()
+                    if returncode is not None:
+                        print(f"❌ [Cloudflare] Process exited with code {returncode}")
+            except Exception as e:
+                print(f"❌ [Cloudflare] Reader error: {e}")
 
         import threading
-        threading.Thread(target=reader, daemon=True).start()
+        reader_thread = threading.Thread(target=reader, daemon=True)
+        reader_thread.start()
+        
+        # Give it a moment to start
+        import time
+        time.sleep(1)
+        if proc.poll() is not None:
+            error_msg = f"cloudflared process exited immediately with code {proc.returncode}"
+            print(f"❌ [Cloudflare] {error_msg}")
+            raise RuntimeError(error_msg)
+        
         return proc
 
     def is_available(self) -> bool:
@@ -449,8 +480,14 @@ class TunnelManager:
             self.url = url
             on_url(url)
 
-        self.active_tunnel = tunnel.start(local_port, url_handler)
-        return True
+        try:
+            self.active_tunnel = tunnel.start(local_port, url_handler)
+            if self.active_tunnel is None:
+                print(f"⚠️  Provider '{provider}' returned no process (may be expected for some providers)")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to start {provider} tunnel: {e}")
+            return False
 
     def stop(self) -> None:
         if self.active_tunnel:
