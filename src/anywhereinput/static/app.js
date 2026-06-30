@@ -124,6 +124,11 @@ class AnywhereInputClient {
         document.getElementById('send-tab').addEventListener('click', () => this.sendKey('tab'));
         document.getElementById('send-backspace').addEventListener('click', () => this.sendKey('backspace'));
 
+        // Hotkey buttons
+        document.querySelectorAll('.hotkey-btn').forEach(btn => {
+            btn.addEventListener('click', () => this.sendHotkey(btn.dataset.keys));
+        });
+
         // Control buttons
         document.querySelectorAll('.ctrl-btn').forEach(btn => {
             btn.addEventListener('click', () => this.handleControlButton(btn.dataset.action));
