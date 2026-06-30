@@ -30,9 +30,9 @@ scripts\windows\run.bat
 
 ### Linux / macOS
 ```bash
-chmod +x scripts/linux/setup.sh scripts/linux/run.sh
-./scripts/linux/setup.sh
-./scripts/linux/run.sh
+chmod +x scripts/unix/setup.sh scripts/unix/run.sh
+./scripts/unix/setup.sh
+./scripts/unix/run.sh
 ```
 
 ### pip (one-liner)
