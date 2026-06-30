@@ -3,6 +3,10 @@ setlocal EnableDelayedExpansion
 
 title AnywhereInput - Windows Setup
 
+
+REM Change to project root (two levels up from scripts\windows)
+cd /d "%~dp0..\.."
+
 REM Print banner
 cls
 echo.
