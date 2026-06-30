@@ -76,9 +76,19 @@ class MouseWorker(threading.Thread):
                         if text:
                             pyautogui.typewrite(text, interval=0.01)
                     elif t == "hotkey":
-                        keys = item.get("keys", [])
+                        keys = item.get("keys", "")
                         if keys:
-                            pyautogui.hotkey(*keys)
+                            # Parse comma-separated keys
+                            if isinstance(keys, str):
+                                keys = keys.split(",")
+                            # Map Windows "win" to macOS "cmd"
+                            if platform.system() == "Darwin":
+                                keys = ["cmd" if k == "win" else k for k in keys]
+                            # Execute hotkey
+                            try:
+                                pyautogui.hotkey(*keys)
+                            except Exception as e:
+                                print(f"⚠️  Hotkey {keys} failed: {e}")
 
                 if mode == "relative" and (dx_total != 0 or dy_total != 0):
                     self.target_x += dx_total
