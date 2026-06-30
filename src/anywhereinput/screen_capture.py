@@ -12,7 +12,7 @@ class ScreenCapture:
     """Handles real-time screen capture with cursor overlay and multi-monitor support."""
 
     def __init__(self, fps: int = 10, quality: int = 60, scale: float = 0.5, monitor_index: int = None):
-        self.fps = max(1, min(60, fps))
+        self.fps = max(1, min(120, fps))
         self.quality = max(1, min(95, quality))
         self.scale = max(0.1, min(1.0, scale))
         self.enabled = True
