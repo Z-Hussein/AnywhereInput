@@ -61,36 +61,66 @@ goto menu
 echo.
 echo [Cloudflare] Starting tunnel...
 python -m anywhereinput.server --tunnel cloudflare
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] Server failed to start (exit code: %errorlevel%)
+    echo.
+)
 goto end
 
 :tailscale
 echo.
 echo [Tailscale] Starting tailnet tunnel...
 python -m anywhereinput.server --tunnel tailscale
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] Server failed to start (exit code: %errorlevel%)
+    echo.
+)
 goto end
 
 :pinggy
 echo.
 echo [Pinggy] Starting SSH tunnel...
 python -m anywhereinput.server --tunnel pinggy
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] Server failed to start (exit code: %errorlevel%)
+    echo.
+)
 goto end
 
 :zrok2
 echo.
 echo [Zrok2] Starting tunnel...
 python -m anywhereinput.server --tunnel zrok2
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] Server failed to start (exit code: %errorlevel%)
+    echo.
+)
 goto end
 
 :ngrok
 echo.
 echo [ngrok] Starting tunnel...
 python -m anywhereinput.server --tunnel ngrok
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] Server failed to start (exit code: %errorlevel%)
+    echo.
+)
 goto end
 
 :local
 echo.
 echo [Local] Starting server (no tunnel)...
 python -m anywhereinput.server
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] Server failed to start (exit code: %errorlevel%)
+    echo.
+)
 goto end
 
 :setup
