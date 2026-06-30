@@ -146,7 +146,9 @@ class AnywhereInputClient {
                 this.els.keyboardInput.value = '';
                 this.lastKeyboardValue = '';
                 // Send the hotkey
-                this.sendHotkey(btn.dataset.keys);
+                const keys = btn.dataset.keys;
+                console.log(`[Hotkey] Sending: ${keys}`);
+                this.sendHotkey(keys);
                 // Visual feedback
                 btn.style.opacity = '0.7';
                 setTimeout(() => { btn.style.opacity = '1'; }, 100);
