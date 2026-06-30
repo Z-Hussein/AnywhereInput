@@ -327,9 +327,9 @@ html, body {
 
 /* Touchpad */
 .touchpad-area {
-    height: 160px;
-    min-height: 120px;
-    max-height: 200px;
+    height: 100px;
+    min-height: 80px;
+    max-height: 150px;
     background: var(--bg-secondary);
     border-top: 1px solid var(--border-color);
     border-bottom: 1px solid var(--border-color);
@@ -360,13 +360,13 @@ html, body {
 
 /* Actions Panel */
 .actions-panel {
-    padding: 10px 12px;
+    padding: 8px 10px;
     background: var(--bg-primary);
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    max-height: 45vh;
+    gap: 6px;
+    max-height: 30vh;
     overflow-y: auto;
     scrollbar-width: none;
 }
@@ -376,20 +376,20 @@ html, body {
 .actions-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
+    gap: 4px;
 }
 
 .ctrl-btn {
-    padding: 10px 4px;
+    padding: 8px 3px;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
-    min-height: 42px;
+    min-height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
