@@ -283,13 +283,21 @@ class AnywhereInputServer:
 
         if tunnel_provider:
             def on_url(url):
-                print(f"\n\U0001f310 Public URL: {url}")
+                full_link = f"{url}/static/client.html?token={token}"
+                print(f"\n🌐 Access Link (click to open):")
+                print(f"   {full_link}")
                 display_qr(url, token)
             ok = self.tunnel_manager.start(tunnel_provider, self.port, on_url)
             if not ok:
-                print(f"\u26a0\ufe0f  Failed to start {tunnel_provider} tunnel")
+                print(f"⚠️  Failed to start {tunnel_provider} tunnel")
+                local_link = f"{local_url}/static/client.html?token={token}"
+                print(f"\n📱 Local Access Link:")
+                print(f"   {local_link}")
                 display_qr(local_url, token)
         else:
+            local_link = f"{local_url}/static/client.html?token={token}"
+            print(f"\n📱 Local Access Link:")
+            print(f"   {local_link}")
             display_qr(local_url, token)
 
         self._capture_task = asyncio.create_task(self._broadcast_screen())
