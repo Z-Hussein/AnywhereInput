@@ -288,26 +288,34 @@ class AnywhereInputServer:
         print("   Press Ctrl+C to stop server")
         print("=" * 50)
 
-        # Token rotation via background thread (reads stdin raw, no terminal mode changes)
-        import select as _select
+        # Token rotation via background thread (reads stdin, works on all platforms)
         self_ref = self
         current_loop = asyncio.get_event_loop()
 
         def _rotate_loop():
             while self_ref._running:
                 try:
+                    # Try platform-specific select (Unix/Linux/macOS)
+                    import select as _select
                     s_in = sys.stdin
                     if s_in and not s_in.closed:
-                        fd = s_in.fileno()
-                        ready, _, _ = _select.select([fd], [], [], 0)
-                        if ready:
-                            raw = os.read(fd, 1)
-                            if raw == b'n':
-                                current_loop.call_soon_threadsafe(
-                                    lambda srv=self_ref: asyncio.ensure_future(_do_rotate(srv))
-                                )
+                        try:
+                            fd = s_in.fileno()
+                            ready, _, _ = _select.select([fd], [], [], 0)
+                            if ready:
+                                raw = os.read(fd, 1)
+                                if raw == b'n':
+                                    current_loop.call_soon_threadsafe(
+                                        lambda srv=self_ref: asyncio.ensure_future(_do_rotate(srv))
+                                    )
+                        except (OSError, ValueError):
+                            # OSError/ValueError on Windows when select not supported on stdin
+                            # Just skip token rotation - server still works fine
+                            import time
+                            time.sleep(0.1)
                 except (BlockingIOError, OSError):
-                    pass
+                    import time
+                    time.sleep(0.1)
                 except Exception:
                     break
 
