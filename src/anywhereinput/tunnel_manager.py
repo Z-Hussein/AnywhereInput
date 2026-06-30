@@ -119,8 +119,15 @@ class CloudflareTunnel(TunnelProvider):
             error_msg = f"cloudflared binary not found at '{self.binary}'"
             print(f"\n❌ {error_msg}")
             print("   Run this project's setup again, or install cloudflared manually:")
-            print("     curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared")
-            print("     chmod +x cloudflared")
+            system = platform.system()
+            if system == "Windows":
+                print("     1. Download: https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe")
+                print("     2. Place in project root or add to PATH")
+            elif system == "Darwin":
+                print("     brew install cloudflare/cloudflare/cloudflared")
+            else:  # Linux
+                print("     curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared")
+                print("     chmod +x cloudflared")
             raise FileNotFoundError(error_msg)
         cmd = [self.binary, "tunnel", "--url", f"http://localhost:{local_port}"]
         
@@ -460,14 +467,29 @@ class TunnelManager:
         tunnel = self.PROVIDERS[provider]()
         if not tunnel.is_available():
             print(f"Provider '{provider}' is not available on this system.")
+            system = platform.system()
             if provider == "cloudflare":
                 print("Tip: Install cloudflared:")
-                print("  curl -L --output cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && chmod +x cloudflared")
+                if system == "Windows":
+                    print("  1. Download: https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe")
+                    print("  2. Place in project root or add to PATH")
+                elif system == "Darwin":
+                    print("  brew install cloudflare/cloudflare/cloudflared")
+                else:
+                    print("  curl -L --output cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && chmod +x cloudflared")
             elif provider == "tailscale":
                 print("Tip: Install and start Tailscale:")
-                print("  curl -fsSL https://tailscale.com/install.sh | sh")
-                print("  sudo tailscaled start")
-                print("  sudo tailscale up")
+                if system == "Windows":
+                    print("  1. Download: https://tailscale.com/download/windows")
+                    print("  2. Run installer and login")
+                elif system == "Darwin":
+                    print("  brew install tailscale")
+                    print("  brew services start tailscale")
+                    print("  tailscale up")
+                else:
+                    print("  curl -fsSL https://tailscale.com/install.sh | sh")
+                    print("  sudo tailscaled start")
+                    print("  sudo tailscale up")
             elif provider == "zrok2":
                 print("Tip: Install Zrok2 (requires account):")
                 print("  https://docs.zrok.io/docs/installation/")
