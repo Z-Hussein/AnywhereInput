@@ -122,15 +122,21 @@ class CloudflareTunnel(TunnelProvider):
             print("     chmod +x cloudflared")
             sys.exit(1)
         cmd = [self.binary, "tunnel", "--url", f"http://localhost:{local_port}"]
-        proc = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-            stdin=subprocess.DEVNULL,
-            preexec_fn=os.setsid,  # new session/process group
-        )
+        
+        # Platform-specific process group creation
+        popen_kwargs = {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.STDOUT,
+            "text": True,
+            "bufsize": 1,
+            "stdin": subprocess.DEVNULL,
+        }
+        if platform.system() == "Windows":
+            popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        else:
+            popen_kwargs["preexec_fn"] = os.setsid
+        
+        proc = subprocess.Popen(cmd, **popen_kwargs)
 
         def reader():
             for line in proc.stdout:
@@ -218,15 +224,21 @@ class PinggyTunnel(TunnelProvider):
             "-R0:localhost:{}".format(local_port),
             "free.pinggy.io", "-T"
         ]
-        proc = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-            stdin=subprocess.DEVNULL,
-            preexec_fn=os.setsid,  
-        )
+        
+        # Platform-specific process group creation
+        popen_kwargs = {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.STDOUT,
+            "text": True,
+            "bufsize": 1,
+            "stdin": subprocess.DEVNULL,
+        }
+        if platform.system() == "Windows":
+            popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        else:
+            popen_kwargs["preexec_fn"] = os.setsid
+        
+        proc = subprocess.Popen(cmd, **popen_kwargs)
 
         def reader():
             for line in proc.stdout:
@@ -275,41 +287,57 @@ class Zrok2Tunnel(TunnelProvider):
             pass
 
         cmd = [self.binary, "share", "public", f"localhost:{local_port}", "--headless"]
-        proc = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-            stdin=subprocess.DEVNULL,
-            preexec_fn=os.setsid, 
-        )
+        
+        # Platform-specific process group creation
+        popen_kwargs = {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.STDOUT,
+            "text": True,
+            "bufsize": 1,
+            "stdin": subprocess.DEVNULL,
+        }
+        if platform.system() == "Windows":
+            popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        else:
+            popen_kwargs["preexec_fn"] = os.setsid
+        
+        proc = subprocess.Popen(cmd, **popen_kwargs)
         self._proc = proc
 
-        import fcntl, select
-
-        import fcntl, select
-
-        # Make stdout non-blocking so we can use select() with timeouts
-        fd = proc.stdout.fileno()
-        flags = fcntl.fcntl(fd, fcntl.F_GETFL)
-        fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+        # Non-blocking I/O setup (Unix-specific)
+        if platform.system() != "Windows":
+            import fcntl
+            # Make stdout non-blocking so we can use select() with timeouts
+            fd = proc.stdout.fileno()
+            flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+            fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
         buf = ""
 
         def reader():
             nonlocal buf
             while True:
-                rlist, _, _ = select.select([proc.stdout], [], [], 1.0)
-                if not rlist:
-                    if proc.poll() is not None:
-                        break
-                    continue
-
-                chunk = proc.stdout.read(4096)
+                try:
+                    if platform.system() != "Windows":
+                        import select
+                        rlist, _, _ = select.select([proc.stdout], [], [], 1.0)
+                        if not rlist:
+                            if proc.poll() is not None:
+                                break
+                            continue
+                        chunk = proc.stdout.read(4096)
+                    else:
+                        # On Windows, just do blocking read (no fcntl/select)
+                        chunk = proc.stdout.read(4096)
+                except Exception:
+                    chunk = None
+                
                 if not chunk:
                     if proc.poll() is not None:
                         break
+                    if platform.system() == "Windows":
+                        import time
+                        time.sleep(0.1)
                     continue
 
                 buf += chunk
@@ -340,15 +368,21 @@ class NgrokTunnel(TunnelProvider):
 
     def start(self, local_port: int, on_url: Callable[[str], None]) -> subprocess.Popen:
         cmd = [self.binary, "http", str(local_port), "--log=stdout"]
-        proc = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            bufsize=1,
-            stdin=subprocess.DEVNULL,
-            preexec_fn=os.setsid,  
-        )
+        
+        # Platform-specific process group creation
+        popen_kwargs = {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.STDOUT,
+            "text": True,
+            "bufsize": 1,
+            "stdin": subprocess.DEVNULL,
+        }
+        if platform.system() == "Windows":
+            popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        else:
+            popen_kwargs["preexec_fn"] = os.setsid
+        
+        proc = subprocess.Popen(cmd, **popen_kwargs)
 
         # ngrok v3 uses "tunnels.session" for session-level URLs and "tunnels.tunnel" for tunnel-level URLs.
         # Output format: url=https://xxx.ngrok-free.dev  (domain is .ngrok-free.dev, not .ngrok-free.app)
