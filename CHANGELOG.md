@@ -16,6 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.2] - 2026-07-01
+
+### Changed
+- Token file now only stores the most recent token (prevents accumulation of old tokens)
+- Automatically cleans up legacy token files with multiple entries on first load
+
+### Fixed
+- `trusted_tokens.json` bloating with every session (now single-token storage)
+
+---
+
 ## [1.1.1] - 2026-07-01
 
 ### Added
