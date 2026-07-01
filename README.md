@@ -2,7 +2,7 @@
 
 **Control your Windows, Linux, or macOS PC from any browser.** No app install, no account, no cloud dependency.
 
-[AnywhereInput](https://www.anywhereinput.com) is a lightweight open-source remote control tool. Run a Python server on your PC and control it from any browser — no app or account needed. It supports mouse, keyboard, scrolling, real-time screen capture, and zero-config tunnel support with **5 providers**.
+[AnywhereInput](https://www.anywhereinput.com) is a lightweight open-source remote control tool. Run a Python server on your PC and control it from any browser — no app or account needed. It supports mouse, keyboard, scrolling, real-time screen capture, and minimal-config tunnel support with **5 providers**.
 
 ---
 
