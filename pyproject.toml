@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "anywhereinput"
-version = "1.0.0"
+version = "1.1.1"
 description = "Remote control your PC from any browser."
 readme = "README.md"
 license = {text = "MIT"}
@@ -46,8 +46,11 @@ dev = [
 anywhereinput = "anywhereinput.server:main"
 ai-server = "anywhereinput.server:main"
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-anywhereinput = ["static/*"]
+anywhereinput = ["static/*", "static/**/*"]
