@@ -1,6 +1,34 @@
 # Installation Guide
 
-## Windows (Recommended)
+## Install from PyPI (Recommended for all platforms)
+
+The easiest way to install on any OS with Python 3.9+:
+
+```bash
+pip install anywhereinput
+anywhereinput --tunnel cloudflare
+```
+
+This installs the latest published release from https://pypi.org/project/anywhereinput/
+
+To upgrade later:
+```bash
+pip install --upgrade anywhereinput
+```
+
+---
+
+## Install from Source (for development or scripts)
+
+```bash
+git clone https://github.com/your-repo/AnywhereInput.git
+cd AnywhereInput
+pip install -e .
+```
+
+---
+
+## Windows (scripts)
 
 ### Quick Start (Automatic)
 1. Download and extract the repository to any folder (e.g., `C:\Tools\AnywhereInput`)
