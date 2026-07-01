@@ -16,21 +16,29 @@ echo ░▀░▀░▀░▀░░▀░░▀░ ░▀ ▀░▀░▀▀▀�
 echo   AnywhereInput v1.0.0 — Remote Control Your PC
 echo.
 
+set "PYTHON_CMD="
+
 :: Check for Python
 python --version >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] Python not found! Please install Python 3.9+ from python.org
-    echo Make sure to check "Add Python to PATH" during installation.
+if not errorlevel 1 (
+    set "PYTHON_CMD=python"
+) else (
+    py -3 --version >nul 2>&1
+    if not errorlevel 1 set "PYTHON_CMD=py -3"
+)
+
+if not defined PYTHON_CMD (
+    echo [ERROR] Python not found! Install Python 3.9+ from python.org or ensure the Windows launcher 'py' is available.
     pause
     exit /b 1
 )
 
-for /f "tokens=*" %%a in ('python --version') do echo [OK] Found: %%a
+for /f "tokens=*" %%a in ('%PYTHON_CMD% --version') do echo [OK] Found: %%a
 
 :: Create virtual environment
 if not exist ".venv" (
     echo [1/4] Creating virtual environment...
-    python -m venv .venv
+    %PYTHON_CMD% -m venv .venv
 ) else (
     echo [1/4] Virtual environment already exists
 )
