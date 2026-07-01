@@ -25,8 +25,28 @@ print_banner() {
     echo "░█▀█░█░█░░█░░█▄▀▄█░█▀█░█▀▀░█▀▄░█▀▀░░█░░█░█░█▀▀░█░█░░█░"
     echo "░▀░▀░▀░▀░░▀░░▀░ ░▀ ▀░▀░▀▀▀░▀░▀░▀▀▀░▀▀▀░▀░▀░▀░░░▀▀▀░░▀░.com"
     echo "  AnywhereInput v1.0.0 — Remote Control Your PC"
+    echo "        by AnywhereInput.com Github: @Z-Hussein"
     echo -e "${NC}"
 }
+
+
+# ── Kill only project-specific tunnel processes ──────────────────────────────
+kill_project_tunnels() {
+    # Only kill processes that match our specific port patterns, not all zrok/ngrok
+    local port="${AI_PORT:-8008}"
+    for pid in $(pgrep -f "zrok share.*localhost:${port}" 2>/dev/null || true); do
+        kill "$pid" 2>/dev/null || true
+    done
+    for pid in $(pgrep -f "ngrok http.*${port}" 2>/dev/null || true); do
+        kill "$pid" 2>/dev/null || true
+    done
+    for pid in $(pgrep -f "cloudflared tunnel.*localhost:${port}" 2>/dev/null || true); do
+        kill "$pid" 2>/dev/null || true
+    done
+    sleep 0.5
+}
+
+kill_project_tunnels
 
 # ── Auto-setup: install deps + package if first run ──────────────────────
 if [ ! -d ".venv" ] || [ ! -f ".venv/bin/anywhereinput" ]; then
@@ -54,13 +74,9 @@ source .venv/bin/activate || { echo -e "${RED}ERROR: Failed to activate virtual 
 
 # Resolve the anywhereinput executable (use full path as fallback)
 ANYWHEREINPUT_CMD=$(command -v anywhereinput 2>/dev/null || echo "$PROJECT_ROOT/.venv/bin/anywhereinput")
-for pid in $(pgrep -f 'zrok2 share' 2>/dev/null || true); do kill "$pid" 2>/dev/null; done
-for pid in $(pgrep -f 'ngrok http' 2>/dev/null || true); do kill "$pid" 2>/dev/null; done
-sleep 0.5
 
 # ── Tunnel availability helpers ────────────────────────────────────────────
 check_cloudflare() {
-    # Cloudflared may not exist yet — it's auto-downloaded on first tunnel use
     [ -f "./cloudflared" ] || command -v cloudflared &>/dev/null || true
 }
 
@@ -92,12 +108,12 @@ show_menu() {
 
     echo -e "Select tunnel provider:"
     echo -e "  [1] Cloudflare Tunnel (Recommended) ${cf_ok}"
-    echo -e "  [2] Tailscale (tailnet P2P)     ${ts_ok}"
-    echo -e "     ${CYAN}Both devices must be on the same tailnet${NC}"
-    echo -e "  [3] Pinggy.io                   ${pg_ok}"
-    echo -e "     ${CYAN}Uses your existing SSH client${NC}"
-    echo -e "  [4] Zrok2                       ${zrok_ok}"
-    echo -e "  [5] ngrok                       ${ngrok_ok}"
+    echo -e "  [2] Tailscale (tailnet P2P) ${ts_ok}"
+    echo -e "  ${CYAN}Both devices must be on the same tailnet${NC}"
+    echo -e "  [3] Pinggy.io ${pg_ok}"
+    echo -e "  ${CYAN}Uses your existing SSH client${NC}"
+    echo -e "  [4] Zrok2 ${zrok_ok}"
+    echo -e "  [5] ngrok ${ngrok_ok}"
     echo -e "  [6] Local only"
     echo -e "  [Q-q] Quit"
     echo ""
@@ -121,7 +137,7 @@ if [ -t 0 ]; then
     print_banner
     show_menu
 else
-    # No TTY (running via script/webchat/etc.) — auto-launch cloudflare tunnel
+    # No TTY — auto-launch cloudflare tunnel
     print_banner
     echo -e "${CYAN}No terminal input available — starting Cloudflare Tunnel...${NC}"
     $ANYWHEREINPUT_CMD --tunnel cloudflare 2>&1
