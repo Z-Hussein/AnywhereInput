@@ -35,13 +35,35 @@ chmod +x scripts/unix/setup.sh scripts/unix/run.sh
 ./scripts/unix/run.sh
 ```
 
-### pip (one-liner)
+### pip — install from PyPI (any platform)
 ```bash
-pip install -e .
+pip install anywhereinput
+anywhereinput --tunnel [cloudflare,tailscale,pinggy,zrok2,ngrok]
+anywhereinput
+```
+
+### Ubuntu (recommended): pipx install from PyPI
+```bash
+sudo apt update
+sudo apt install -y pipx
+pipx ensurepath
+
+# Open a new terminal, then install and run
+pipx install anywhereinput
 anywhereinput --tunnel cloudflare
 ```
 
-Then pick your tunnel provider from the interactive menu.
+
+
+> Package on PyPI: https://pypi.org/project/anywhereinput/
+
+---
+
+## Important Notes
+
+- See docs/IMPORTANT.md for critical security, tunnel, and troubleshooting notes.
+- See IMPORTANT.md in the repository root for quick operator guidance before first run.
+- Client monitor selection supports all detected displays from the monitor dropdown (including Auto mode).
 
 ---
 
@@ -108,7 +130,7 @@ Then pick your tunnel provider from the interactive menu.
 
 | Flag | Default | Description |
 |---|---|---|
-| `--host HOST` | `0.0.0.0` | Server host bind address |
+| `--host HOST` | `127.0.0.1` | Server host bind address |
 | `--port PORT` | `8008` | Server port |
 | `--fps FPS` | `10` | Screen capture FPS (1–30) |
 | `--quality Q` | `60` | JPEG quality (1–95) |
