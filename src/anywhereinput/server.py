@@ -142,7 +142,7 @@ class MouseWorker(threading.Thread):
 
 
 class AnywhereInputServer:
-    def __init__(self, host="0.0.0.0", port=8008, fps=30, quality=95, scale=1.0, no_capture=False, monitor=0):
+    def __init__(self, host="localhost", port=8008, fps=30, quality=95, scale=1.0, no_capture=False, monitor=0):
         self.host = host
         self.port = port
         self.token_manager = TokenManager()
@@ -366,7 +366,7 @@ async def _do_rotate(server):
 
 def main():
     parser = argparse.ArgumentParser(description="AnywhereInput Server")
-    parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument("--host", default="localhost")
     parser.add_argument("--port", type=int, default=8008)
     parser.add_argument("--fps", type=int, default=120, help="Frame rate: 1-120 (default: 120 for minimum latency)")
     parser.add_argument("--quality", type=int, default=85, help="JPEG quality: 1-95 (default: 85 for balance of speed and clarity)")
