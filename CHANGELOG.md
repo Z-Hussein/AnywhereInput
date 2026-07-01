@@ -16,6 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.3] - 2026-07-01
+
+### Changed
+- Provider-aware host handling for tunnel startup to use correct local upstream addresses.
+- Automatic bind host selection for Tailscale (fallback to `0.0.0.0` when loopback would fail remote access).
+
+### Fixed
+- Tunnel startup/address mismatches caused by provider-specific host expectations (`localhost` vs `0.0.0.0`/tailnet-reachable bind).
+
+---
+
 ## [1.1.2] - 2026-07-01
 
 ### Changed
