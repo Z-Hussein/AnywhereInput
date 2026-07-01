@@ -20,14 +20,14 @@ class AnywhereInputClient {
         this.longPressDuration = 600;
         this.moveBuffer = { dx: 0, dy: 0 };
         this.moveTimer = null;
-        this.moveInterval = 16; // 60Hz update rate ensures no Cloudflare/Ngrok Tunnel disconnects (anti-flood)
+        this.moveInterval = 16; // 60Hz update rate
 
         // Screen dimensions
         this.screenWidth = 1920;
         this.screenHeight = 1080;
         this.monitors = [];
 
-        // Paint mode from reference
+        // Paint mode
         this.touchpadMode = "mouse";
         this.isPainting = false;
         this.lastKeyboardValue = "";
@@ -37,9 +37,28 @@ class AnywhereInputClient {
 
     init() {
         this.bindElements();
+        this.bindViewportSizing();
         this.bindEvents();
         this.loadSettings();
         this.autoFillFromURL();
+    }
+
+    bindViewportSizing() {
+        const update = () => {
+            const vv = window.visualViewport;
+            const h = vv ? vv.height : window.innerHeight;
+            const w = vv ? vv.width : window.innerWidth;
+            document.documentElement.style.setProperty('--app-height', `${Math.round(h)}px`);
+            document.documentElement.style.setProperty('--app-width', `${Math.round(w)}px`);
+        };
+
+        update();
+        window.addEventListener('resize', update, { passive: true });
+        window.addEventListener('orientationchange', update, { passive: true });
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', update, { passive: true });
+            window.visualViewport.addEventListener('scroll', update, { passive: true });
+        }
     }
 
     bindElements() {
@@ -65,7 +84,6 @@ class AnywhereInputClient {
             modeBadge: document.getElementById('stream-mode'),
             modeSelector: document.getElementById('mode-selector'),
         };
-        // Validate all elements are found
         for (const key in this.els) {
             if (!this.els[key]) console.warn(`Element not found: ${key}`);
         }
@@ -76,7 +94,6 @@ class AnywhereInputClient {
         const queryToken = params.get("token");
         const queryHost = params.get("host");
 
-        // Auto-fill server URL: priority to query param, then current origin
         if (queryHost) {
             this.els.serverUrl.value = queryHost;
         } else if (window.location.protocol.startsWith("http")) {
@@ -85,33 +102,17 @@ class AnywhereInputClient {
             this.els.serverUrl.value = window.location.hostname;
         }
 
-        // Auto-fill token from URL params
         if (queryToken) {
             this.els.accessToken.value = queryToken;
-        } else if (window.location.protocol.startsWith("http")) {
-            // Try to fetch token from server if not in URL
-            this.fetchTokenFromServer();
         }
 
         // Auto-connect if both URL and token are available
         if (this.els.serverUrl.value && this.els.accessToken.value) {
             setTimeout(() => {
-                // Give user a moment to see prefilled fields before auto-connecting
-                // Comment out the line below if you don't want auto-connect
+                // Uncomment below to enable auto-connect
                 // this.connect();
             }, 500);
         }
-    }
-
-    async fetchTokenFromServer() {
-        try {
-            const url = window.location.origin + "/api/token";
-            const r = await fetch(url);
-            if (r.ok) {
-                const d = await r.json();
-                if (d.token) this.els.accessToken.value = d.token;
-            }
-        } catch (e) { console.log("Could not fetch token"); }
     }
 
     bindEvents() {
@@ -144,14 +145,11 @@ class AnywhereInputClient {
                 if (btn.dataset.fired === '1') return;
                 btn.dataset.fired = '1';
                 setTimeout(() => { btn.dataset.fired = ''; }, 200);
-                // Clear keyboard input to prevent live typing interference
                 this.els.keyboardInput.value = '';
                 this.lastKeyboardValue = '';
-                // Send the hotkey
                 const keys = btn.dataset.keys;
                 console.log(`[Hotkey] Sending: ${keys}`);
                 this.sendHotkey(keys);
-                // Visual feedback
                 btn.style.opacity = '0.7';
                 setTimeout(() => { btn.style.opacity = '1'; }, 100);
             });
@@ -177,7 +175,6 @@ class AnywhereInputClient {
         // Mode selector
         this.els.modeSelector.addEventListener('change', (e) => this.setMode(e.target.value));
 
-
         // Settings
         document.getElementById('setting-screen').addEventListener('change', (e) => {
             this.screenEnabled = e.target.checked;
@@ -197,16 +194,15 @@ class AnywhereInputClient {
         document.getElementById('setting-tap-click').addEventListener('change', (e) => { this.tapToClick = e.target.checked; });
         document.getElementById('setting-long-press').addEventListener('change', (e) => { this.longPressRightClick = e.target.checked; });
 
-        // Live typing from reference
+        // Live typing
         this.els.keyboardInput.addEventListener("input", () => this.handleLiveTyping());
     }
 
     setMode(mode) {
         this.touchpadMode = mode;
-        const hints = { mouse: 'Drag to move pointer', keyboard: "Type on your device's keyboard", paint: 'Drag to paint and draw<br>Release to stop' };
+        const hints = { mouse: 'Drag to move pointer', keyboard: "Type on your device's keyboard", paint: 'Drag to paint and draw\nRelease to stop' };
         this.els.touchpadHint.innerHTML = hints[mode] || hints.mouse;
 
-        // Update bottom stream bar mode badge
         const modeLabels = { mouse: 'Mouse', keyboard: 'Keyboard', paint: 'Paint' };
         document.getElementById('stream-mode').textContent = modeLabels[mode] || 'Mouse';
 
@@ -330,7 +326,8 @@ class AnywhereInputClient {
         if (Math.abs(this.moveBuffer.dx) > 0.1 || Math.abs(this.moveBuffer.dy) > 0.1) {
             let sendDx = Math.round(this.moveBuffer.dx);
             let sendDy = Math.round(this.moveBuffer.dy);
-            if (!isNaN(sendDx) && !isNaN(sendDy)) {
+            // FIX: Check for NaN before sending
+            if (!Number.isNaN(sendDx) && !Number.isNaN(sendDy)) {
                 this.send({ type: 'move', mode: 'relative', dx: sendDx, dy: sendDy });
             }
             this.moveBuffer.dx = 0;
@@ -457,7 +454,17 @@ class AnywhereInputClient {
 
     async fetchScreenInfo() {
         const url = this.els.serverUrl.value.trim().replace(/\/$/, '');
-        try { const r = await fetch(url + '/api/screen'); const d = await r.json(); this.screenWidth = d.width; this.screenHeight = d.height; } catch (e) { console.log('Could not fetch screen info'); }
+        try {
+            const r = await fetch(url + '/api/screen');
+            const d = await r.json();
+            this.screenWidth = d.width;
+            this.screenHeight = d.height;
+            if (this.screenWidth > 0 && this.screenHeight > 0) {
+                this.els.screenStream.style.aspectRatio = `${this.screenWidth} / ${this.screenHeight}`;
+            }
+        } catch (e) {
+            console.log('Could not fetch screen info');
+        }
     }
 
     async fetchMonitors() {
@@ -466,26 +473,29 @@ class AnywhereInputClient {
             const r = await fetch(url + '/api/monitors');
             const d = await r.json();
             this.monitors = d.monitors || [];
-            if (this.monitors.length > 1) {
+            if (this.monitors.length > 0) {
                 this.els.monitorSetting.style.display = 'flex';
 
-                // Only populate options once (preserve user selection on reconnect)
-                if (!this._monitorsPopulated) {
-                    this._monitorsPopulated = true;
-                    this.els.monitorSelect.innerHTML = '<option value="0">🎯 Auto (follow cursor)</option>';
-                    this.monitors.forEach(mon => {
-                        const opt = document.createElement('option');
-                        opt.value = mon.index;
-                        opt.textContent = `${mon.primary ? '🖥️' : '📺'} Monitor ${mon.index} (${mon.width}x${mon.height})`;
-                        this.els.monitorSelect.appendChild(opt);
-                    });
-                }
+                // Rebuild options every refresh so all detected displays are always listed.
+                this.els.monitorSelect.innerHTML = '';
 
-                // Update selection to match server state
+                const autoOpt = document.createElement('option');
+                autoOpt.value = '0';
+                autoOpt.textContent = '🎯 Auto (follow cursor)';
+                this.els.monitorSelect.appendChild(autoOpt);
+
+                const sortedMonitors = [...this.monitors].sort((a, b) => a.index - b.index);
+                sortedMonitors.forEach(mon => {
+                    const opt = document.createElement('option');
+                    opt.value = String(mon.index);
+                    opt.textContent = `${mon.primary ? '🖥️' : '📺'} Monitor ${mon.index} (${mon.width}x${mon.height})`;
+                    this.els.monitorSelect.appendChild(opt);
+                });
+
                 const newVal = d.auto_track ? '0' : String(d.current);
-                if (this.els.monitorSelect.value !== newVal) {
-                    this.els.monitorSelect.value = newVal;
-                }
+                this.els.monitorSelect.value = newVal;
+            } else {
+                this.els.monitorSetting.style.display = 'none';
             }
         } catch (e) { console.log('Could not fetch monitors'); }
     }
@@ -500,10 +510,6 @@ class AnywhereInputClient {
                 this.els.monitorSelect.value = String(d.monitor);
                 if (d.auto_track) {
                     this.els.monitorSelect.value = '0';
-                    const autoOpt = document.createElement('option');
-                    autoOpt.value = '0';
-                    autoOpt.textContent = '🎯 Auto (follow cursor)';
-                    this.els.monitorSelect.insertBefore(autoOpt, this.els.monitorSelect.firstChild);
                 }
                 this.showStatus('Monitor: ' + (d.auto_track ? 'Auto' : d.monitor), 'success');
             } else {
@@ -573,7 +579,7 @@ class AnywhereInputClient {
 
             if (this.touchpadMode === 'paint') {
                 this.els.modeBadge.textContent = 'Paint Mode';
-                this.els.touchpadHint.innerHTML = 'Drag to paint and draw<br>Release to stop';
+                this.els.touchpadHint.innerHTML = 'Drag to paint and draw\nRelease to stop';
             }
         }
         window.addEventListener('beforeunload', () => {
