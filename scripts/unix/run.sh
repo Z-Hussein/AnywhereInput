@@ -49,7 +49,7 @@ kill_project_tunnels() {
 kill_project_tunnels
 
 # ── Auto-setup: install deps + package if first run ──────────────────────
-if [ ! -d ".venv" ] || [ ! -f ".venv/bin/anywhereinput" ]; then
+if [ ! -x ".venv/bin/python" ]; then
     echo -e "${YELLOW}First run detected. Setting up AnywhereInput...${NC}"
     echo ""
 
@@ -63,8 +63,12 @@ if [ ! -d ".venv" ] || [ ! -f ".venv/bin/anywhereinput" ]; then
 
     python3 -m venv .venv
     source .venv/bin/activate
-    pip install --upgrade pip >/dev/null 2>&1
-    pip install -e . >/dev/null 2>&1
+    "$PROJECT_ROOT/.venv/bin/python" -m pip install --upgrade pip >/dev/null 2>&1
+    "$PROJECT_ROOT/.venv/bin/python" -m pip install -e . >/dev/null 2>&1 || {
+        echo -e "${RED}ERROR: Failed to install AnywhereInput into .venv${NC}"
+        echo -e "${YELLOW}Try: source .venv/bin/activate && python -m pip install -e .${NC}"
+        exit 1
+    }
 
     echo -e "${GREEN}✓ Setup complete!${NC}"
     echo ""
@@ -72,8 +76,17 @@ fi
 
 source .venv/bin/activate || { echo -e "${RED}ERROR: Failed to activate virtual environment${NC}"; exit 1; }
 
-# Resolve the anywhereinput executable (use full path as fallback)
-ANYWHEREINPUT_CMD=$(command -v anywhereinput 2>/dev/null || echo "$PROJECT_ROOT/.venv/bin/anywhereinput")
+# Ensure package is importable from the project venv
+"$PROJECT_ROOT/.venv/bin/python" -c "import anywhereinput" >/dev/null 2>&1 || {
+    echo -e "${YELLOW}Repairing broken venv installation...${NC}"
+    "$PROJECT_ROOT/.venv/bin/python" -m pip install -e . >/dev/null 2>&1 || {
+        echo -e "${RED}ERROR: anywhereinput is not importable in .venv${NC}"
+        exit 1
+    }
+}
+
+# Always run the module from the project venv to avoid broken script wrappers
+ANYWHEREINPUT_CMD="$PROJECT_ROOT/.venv/bin/python -m anywhereinput.server"
 
 # ── Tunnel availability helpers ────────────────────────────────────────────
 check_cloudflare() {
