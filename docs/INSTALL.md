@@ -16,6 +16,27 @@ To upgrade later:
 pip install --upgrade anywhereinput
 ```
 
+### Ubuntu: install with pipx (recommended for CLI isolation)
+
+```bash
+sudo apt update
+sudo apt install -y pipx
+pipx ensurepath
+```
+
+Open a new terminal, then:
+
+```bash
+pipx install anywhereinput
+anywhereinput --tunnel cloudflare
+```
+
+Upgrade later:
+
+```bash
+pipx upgrade anywhereinput
+```
+
 ---
 
 ## Install from Source (for development or scripts)
@@ -48,9 +69,9 @@ anywhereinput --tunnel cloudflare
 
 ### Quick Start
 ```bash
-chmod +x scripts/linux/setup.sh scripts/linux/run.sh
-./scripts/linux/setup.sh
-./scripts/linux/run.sh
+chmod +x scripts/unix/setup.sh scripts/unix/run.sh
+./scripts/unix/setup.sh
+./scripts/unix/run.sh
 ```
 
 ### Manual Setup
