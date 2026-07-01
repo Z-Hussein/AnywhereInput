@@ -11,6 +11,8 @@ import requests
 import threading
 import re
 import socket
+import atexit
+import weakref
 from pathlib import Path
 from typing import Optional, Callable
 from abc import ABC, abstractmethod
@@ -35,7 +37,6 @@ class CloudflareTunnel(TunnelProvider):
 
     def __init__(self):
         self.binary = self._find_or_download()
-        # Ensure absolute path for reliable subprocess execution
         if not os.path.isabs(self.binary):
             resolved = Path(self.binary).resolve()
             if resolved.is_file():
@@ -47,17 +48,12 @@ class CloudflareTunnel(TunnelProvider):
 
     def _find_or_download(self) -> str:
         name = "cloudflared.exe" if platform.system() == "Windows" else "cloudflared"
-
-        # Check PATH first
         path = shutil.which(name)
         if path:
             return path
-
-        # Check project root (absolute, regardless of cwd)
         local = self._SCRIPT_DIR / name
         if local.exists():
             return str(local.resolve())
-        # Auto-download
         return self._download()
 
     def _download(self) -> str:
@@ -82,30 +78,23 @@ class CloudflareTunnel(TunnelProvider):
         try:
             r = requests.get(url, timeout=60)
             r.raise_for_status()
-
             with open(target, 'wb') as f:
                 f.write(r.content)
-
             if system != "windows":
                 os.chmod(target, 0o755)
-
         except Exception as e:
             raise FileNotFoundError(f"cloudflared download failed: {e}")
 
-        # Darwin: extract tgz to cloudflared
         if system == "darwin" and filename.endswith(".tgz"):
             import tarfile
-            extracted_name = None
             with tarfile.open(target, 'r:gz') as tar:
                 for member in tar.getmembers():
                     if member.isfile() and 'cloudflared' in member.name.lower():
-                        extracted_name = member.name
                         tar.extract(member, self._SCRIPT_DIR)
                         break
             target.unlink()
             executable = "cloudflared"
         else:
-            # Linux: rename to cloudflared
             exec_path = self._SCRIPT_DIR / "cloudflared"
             Path(target).rename(exec_path)
             executable = "cloudflared"
@@ -118,22 +107,10 @@ class CloudflareTunnel(TunnelProvider):
         if not os.path.isfile(self.binary) and shutil.which(self.binary) is None:
             error_msg = f"cloudflared binary not found at '{self.binary}'"
             print(f"\n❌ {error_msg}")
-            print("   Run this project's setup again, or install cloudflared manually:")
-            system = platform.system()
-            if system == "Windows":
-                print("     1. Download: https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe")
-                print("     2. Place in project root or add to PATH")
-            elif system == "Darwin":
-                print("     brew install cloudflare/cloudflare/cloudflared")
-            else:  # Linux
-                print("     curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared")
-                print("     chmod +x cloudflared")
             raise FileNotFoundError(error_msg)
-        cmd = [self.binary, "tunnel", "--url", f"http://localhost:{local_port}"]
-        
-        print(f"[Cloudflare] Starting: {' '.join(cmd)}")
-        
-        # Platform-specific process group creation
+
+        cmd = [self.binary, "tunnel", "--url", f"http://127.0.0.1:{local_port}"]
+
         popen_kwargs = {
             "stdout": subprocess.PIPE,
             "stderr": subprocess.STDOUT,
@@ -145,47 +122,47 @@ class CloudflareTunnel(TunnelProvider):
             popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
         else:
             popen_kwargs["preexec_fn"] = os.setsid
-        
+
         try:
             proc = subprocess.Popen(cmd, **popen_kwargs)
         except Exception as e:
-            error_msg = f"Failed to start cloudflared: {e}"
-            print(f"❌ {error_msg}")
-            raise RuntimeError(error_msg)
+            raise RuntimeError(f"Failed to start cloudflared: {e}")
 
         def reader():
             try:
                 line_count = 0
+                url_found = False
+                last_non_url_line = ""
                 for line in proc.stdout:
                     line = line.strip()
                     if line:
                         line_count += 1
-                        print(f"[cloudflared] {line}")
-                        if "trycloudflare.com" in line or "https://" in line:
-                            match = re.search(r'https://[a-zA-Z0-9-]+\.trycloudflare\.com', line)
-                            if match:
-                                print(f"✅ [Cloudflare] Tunnel URL: {match.group(0)}")
-                                on_url(match.group(0))
+                        match = re.search(r'https://[a-zA-Z0-9-]+\.trycloudflare\.com', line)
+                        if match:
+                            url_found = True
+                            print(f"✅ [Cloudflare] Tunnel URL: {match.group(0)}")
+                            on_url(match.group(0))
+                            continue
+
+                        # Stay silent during normal operation; keep only last line for failure context.
+                        last_non_url_line = line
                 if line_count == 0:
-                    print("⚠️  [Cloudflare] No output received from cloudflared")
                     returncode = proc.poll()
                     if returncode is not None:
                         print(f"❌ [Cloudflare] Process exited with code {returncode}")
+                elif not url_found:
+                    returncode = proc.poll()
+                    if returncode is not None and returncode != 0:
+                        print(f"❌ [Cloudflare] Failed to establish tunnel (exit code {returncode})")
+                        if last_non_url_line:
+                            print(f"   Last cloudflared output: {last_non_url_line}")
             except Exception as e:
                 print(f"❌ [Cloudflare] Reader error: {e}")
 
-        import threading
-        reader_thread = threading.Thread(target=reader, daemon=True)
-        reader_thread.start()
-        
-        # Give it a moment to start
-        import time
+        threading.Thread(target=reader, daemon=True).start()
         time.sleep(1)
         if proc.poll() is not None:
-            error_msg = f"cloudflared process exited immediately with code {proc.returncode}"
-            print(f"❌ [Cloudflare] {error_msg}")
-            raise RuntimeError(error_msg)
-        
+            raise RuntimeError(f"cloudflared exited immediately with code {proc.returncode}")
         return proc
 
     def is_available(self) -> bool:
@@ -197,15 +174,9 @@ class CloudflareTunnel(TunnelProvider):
 
 
 class TailscaleTunnel(TunnelProvider):
-    """Tailscale tailnet — no public URL, peer-to-peer via Tailscale IP.
-
-    Both server and client must be on the same tailnet. The server prints
-    its Tailnet IP so the client can connect directly to port 8008.
-    No extra binary needed if tailscaled is already running.
-    """
+    """Tailscale tailnet — peer-to-peer via Tailscale IP."""
 
     def start(self, local_port: int, on_url: Callable[[str], None]) -> subprocess.Popen:
-        # Print the server's tailnet IP — no background process to manage
         try:
             hostname = socket.gethostname()
             addrs = socket.getaddrinfo(hostname, None, family=socket.AF_INET)
@@ -215,21 +186,17 @@ class TailscaleTunnel(TunnelProvider):
                     print(f"\n🔷 Tailscale network active")
                     print(f"   Tailnet IP: {ip}")
                     print(f"   Server port: {local_port}")
-                    print(f"   Connect from another tailnet device to {ip}:{local_port}")
                     on_url(f"{ip}:{local_port}")
                     break
             else:
                 print("\n⚠️  Tailscale is installed but no tailnet IP detected.")
-                print("   Make sure you're logged in: tailscale status")
                 return None
         except Exception as e:
             print(f"\n⚠️  Could not get tailnet IP: {e}")
             return None
-        # No subprocess to manage — just a message
         return None
 
     def is_available(self) -> bool:
-        """Check if tailscale binary exists and the node is connected."""
         if shutil.which("tailscale") is None:
             return False
         try:
@@ -254,16 +221,14 @@ class PinggyTunnel(TunnelProvider):
     """Pinggy.io tunnel (SSH-based, no install)."""
 
     def start(self, local_port: int, on_url: Callable[[str], None]) -> subprocess.Popen:
-        # Use official pinggy SSH endpoint per their docs
         cmd = [
             "ssh", "-p", "443",
             "-o", "StrictHostKeyChecking=no",
             "-o", "ServerAliveInterval=30",
-            "-R0:localhost:{}".format(local_port),
+            f"-R0:localhost:{local_port}",
             "free.pinggy.io", "-T"
         ]
-        
-        # Platform-specific process group creation
+
         popen_kwargs = {
             "stdout": subprocess.PIPE,
             "stderr": subprocess.STDOUT,
@@ -275,24 +240,24 @@ class PinggyTunnel(TunnelProvider):
             popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
         else:
             popen_kwargs["preexec_fn"] = os.setsid
-        
+
         proc = subprocess.Popen(cmd, **popen_kwargs)
 
         def reader():
             for line in proc.stdout:
                 line = line.strip()
-                if "pinggy" in line.lower():
-                    matches = re.findall(r'https?://[a-zA-Z0-9._-]+\.(?:pinggy-free\.link|free\.pinggy\.net|free\.pinggy\.io)', line)
-                    for match in matches:
-                        on_url(match)
+                matches = re.findall(
+                    r'https?://[a-zA-Z0-9._-]+\.(?:pinggy-free\.link|free\.pinggy\.net|free\.pinggy\.io)',
+                    line
+                )
+                for match in matches:
+                    on_url(match)
 
         threading.Thread(target=reader, daemon=True).start()
         return proc
 
     def is_available(self) -> bool:
         return shutil.which("ssh") is not None
-
-
 
 
 class Zrok2Tunnel(TunnelProvider):
@@ -304,13 +269,11 @@ class Zrok2Tunnel(TunnelProvider):
 
     @staticmethod
     def _strip_ansi(text: str) -> str:
-        """Strip ANSI escape sequences from text."""
         text = re.sub(r'\x1b\[[0-9;?]*[a-zA-Z]', '', text)
         text = re.sub(r'\x1b\][^\x07]*\x07', '', text)
         return text
 
     def start(self, local_port: int, on_url: Callable[[str], None]) -> subprocess.Popen:
-        # Check if zrok environment is enabled
         try:
             result = subprocess.run(
                 [self.binary, "status"],
@@ -319,14 +282,12 @@ class Zrok2Tunnel(TunnelProvider):
             output = (result.stdout or "") + (result.stderr or "")
             if "not enabled" in output.lower():
                 print("\n⚠️  zrok environment is NOT enabled.")
-                print("   Run 'zrok2 enable <TOKEN>' first, or use the free zrok.io service.")
                 return None
         except Exception:
             pass
 
         cmd = [self.binary, "share", "public", f"localhost:{local_port}", "--headless"]
-        
-        # Platform-specific process group creation
+
         popen_kwargs = {
             "stdout": subprocess.PIPE,
             "stderr": subprocess.STDOUT,
@@ -338,14 +299,12 @@ class Zrok2Tunnel(TunnelProvider):
             popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
         else:
             popen_kwargs["preexec_fn"] = os.setsid
-        
+
         proc = subprocess.Popen(cmd, **popen_kwargs)
         self._proc = proc
 
-        # Non-blocking I/O setup (Unix-specific)
         if platform.system() != "Windows":
             import fcntl
-            # Make stdout non-blocking so we can use select() with timeouts
             fd = proc.stdout.fileno()
             flags = fcntl.fcntl(fd, fcntl.F_GETFL)
             fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
@@ -365,16 +324,14 @@ class Zrok2Tunnel(TunnelProvider):
                             continue
                         chunk = proc.stdout.read(4096)
                     else:
-                        # On Windows, just do blocking read (no fcntl/select)
                         chunk = proc.stdout.read(4096)
                 except Exception:
                     chunk = None
-                
+
                 if not chunk:
                     if proc.poll() is not None:
                         break
                     if platform.system() == "Windows":
-                        import time
                         time.sleep(0.1)
                     continue
 
@@ -386,8 +343,6 @@ class Zrok2Tunnel(TunnelProvider):
                     line = line.strip()
                     if not line:
                         continue
-
-                    # Extract zrok hostname anywhere in the line (zrok2 outputs structured JSON)
                     m = re.search(r'[a-zA-Z0-9._-]+\.zrok\.(?:io|net)', line)
                     if m:
                         on_url(f"https://{m.group(0)}")
@@ -398,6 +353,8 @@ class Zrok2Tunnel(TunnelProvider):
 
     def is_available(self) -> bool:
         return shutil.which("zrok") is not None or shutil.which("zrok2") is not None
+
+
 class NgrokTunnel(TunnelProvider):
     """ngrok tunnel (requires account)."""
 
@@ -406,8 +363,7 @@ class NgrokTunnel(TunnelProvider):
 
     def start(self, local_port: int, on_url: Callable[[str], None]) -> subprocess.Popen:
         cmd = [self.binary, "http", str(local_port), "--log=stdout"]
-        
-        # Platform-specific process group creation
+
         popen_kwargs = {
             "stdout": subprocess.PIPE,
             "stderr": subprocess.STDOUT,
@@ -419,11 +375,8 @@ class NgrokTunnel(TunnelProvider):
             popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
         else:
             popen_kwargs["preexec_fn"] = os.setsid
-        
-        proc = subprocess.Popen(cmd, **popen_kwargs)
 
-        # ngrok v3 uses "tunnels.session" for session-level URLs and "tunnels.tunnel" for tunnel-level URLs.
-        # Output format: url=https://xxx.ngrok-free.dev  (domain is .ngrok-free.dev, not .ngrok-free.app)
+        proc = subprocess.Popen(cmd, **popen_kwargs)
 
         def reader():
             for line in proc.stdout:
@@ -433,7 +386,6 @@ class NgrokTunnel(TunnelProvider):
                     if match:
                         on_url(f"https://{match.group(1)}.ngrok-free.{match.group(2)}")
 
-        import threading
         threading.Thread(target=reader, daemon=True).start()
         return proc
 
@@ -442,7 +394,7 @@ class NgrokTunnel(TunnelProvider):
 
 
 class TunnelManager:
-    """Manages all tunnel providers."""
+    """Manages all tunnel providers with automatic cleanup."""
 
     PROVIDERS = {
         "cloudflare": CloudflareTunnel,
@@ -455,6 +407,45 @@ class TunnelManager:
     def __init__(self):
         self.active_tunnel: Optional[subprocess.Popen] = None
         self.url: Optional[str] = None
+        self._all_procs = weakref.WeakSet()
+        atexit.register(self._cleanup_all)
+
+    def _cleanup_all(self):
+        """Kill all tracked subprocesses on exit."""
+        for proc in list(self._all_procs):
+            try:
+                if proc.poll() is None:
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                        proc.wait(timeout=1)
+            except Exception:
+                pass
+
+    def _kill_process_group(self, proc):
+        """Kill process and its children."""
+        if proc is None:
+            return
+        try:
+            pid = proc.pid
+            if pid:
+                if platform.system() == "Windows":
+                    proc.terminate()
+                    try:
+                        proc.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                else:
+                    try:
+                        os.killpg(os.getpgid(pid), signal.SIGTERM)
+                        proc.wait(timeout=3)
+                    except (ProcessLookupError, OSError, subprocess.TimeoutExpired):
+                        proc.kill()
+                        proc.wait(timeout=1)
+        except Exception:
+            pass
 
     def list_providers(self):
         return {name: cls().is_available() for name, cls in self.PROVIDERS.items()}
@@ -467,35 +458,6 @@ class TunnelManager:
         tunnel = self.PROVIDERS[provider]()
         if not tunnel.is_available():
             print(f"Provider '{provider}' is not available on this system.")
-            system = platform.system()
-            if provider == "cloudflare":
-                print("Tip: Install cloudflared:")
-                if system == "Windows":
-                    print("  1. Download: https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe")
-                    print("  2. Place in project root or add to PATH")
-                elif system == "Darwin":
-                    print("  brew install cloudflare/cloudflare/cloudflared")
-                else:
-                    print("  curl -L --output cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && chmod +x cloudflared")
-            elif provider == "tailscale":
-                print("Tip: Install and start Tailscale:")
-                if system == "Windows":
-                    print("  1. Download: https://tailscale.com/download/windows")
-                    print("  2. Run installer and login")
-                elif system == "Darwin":
-                    print("  brew install tailscale")
-                    print("  brew services start tailscale")
-                    print("  tailscale up")
-                else:
-                    print("  curl -fsSL https://tailscale.com/install.sh | sh")
-                    print("  sudo tailscaled start")
-                    print("  sudo tailscale up")
-            elif provider == "zrok2":
-                print("Tip: Install Zrok2 (requires account):")
-                print("  https://docs.zrok.io/docs/installation/")
-            elif provider == "ngrok":
-                print("Tip: Install ngrok (requires account):")
-                print("  https://ngrok.com/download")
             return False
 
         def url_handler(url: str):
@@ -504,8 +466,8 @@ class TunnelManager:
 
         try:
             self.active_tunnel = tunnel.start(local_port, url_handler)
-            if self.active_tunnel is None:
-                print(f"⚠️  Provider '{provider}' returned no process (may be expected for some providers)")
+            if self.active_tunnel is not None:
+                self._all_procs.add(self.active_tunnel)
             return True
         except Exception as e:
             print(f"❌ Failed to start {provider} tunnel: {e}")
@@ -513,18 +475,6 @@ class TunnelManager:
 
     def stop(self) -> None:
         if self.active_tunnel:
-            try:
-                # Kill the entire process group to ensure child processes die too
-                pid = self.active_tunnel.pid
-                if pid:
-                    import signal as sig
-                    try:
-                        os.killpg(os.getpgid(pid), sig.SIGKILL)
-                    except (ProcessLookupError, OSError):
-                        # Process already gone or no process group — fall back to normal kill
-                        pass
-            except Exception:
-                pass
-            finally:
-                self.active_tunnel = None
-                self.url = None
+            self._kill_process_group(self.active_tunnel)
+            self.active_tunnel = None
+            self.url = None
