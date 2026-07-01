@@ -16,6 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.4] - 2026-07-01
+
+### Added
+- Ubuntu-specific installation guidance using `pipx` (`apt install pipx`, `pipx install anywhereinput`) in docs.
+
+### Changed
+- Linux launcher now installs dependencies via `python -m pip` from the project virtual environment for better compatibility.
+- Linux launcher now starts the server via `python -m anywhereinput.server` to avoid broken entrypoint wrapper scripts.
+
+### Fixed
+- Resolved startup failures where launcher-selected executables could trigger `ModuleNotFoundError: No module named 'anywhereinput'`.
+- Improved self-repair flow when package import checks fail inside `.venv`.
+
+---
+
 ## [1.1.3] - 2026-07-01
 
 ### Changed
