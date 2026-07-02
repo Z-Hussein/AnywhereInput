@@ -321,7 +321,7 @@ click>=8.0
 - ✅ Pinggy SSH tunnel with URL parsing
 - ✅ Terminal QR code generation
 - ❌ Android/iOS companion app
-- ❌ Video streaming mode
+- ❌ Audio streaming mode
 - ❌ File transfer over tunnel
 - ❌ Enterprise SSO integration
 
