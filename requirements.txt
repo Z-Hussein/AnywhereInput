@@ -2,7 +2,7 @@ pyautogui==0.9.54
 aiohttp==3.13.4
 requests==2.33.0
 pyotp==2.9.0
-qrcode[pil]==8.0.1
+qrcode[pil]==8.2
 mss==10.1.0
 Pillow==12.1.1
 pyyaml==6.0.2
