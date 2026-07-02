@@ -39,7 +39,7 @@ chmod +x scripts/unix/setup.sh scripts/unix/run.sh
 ```bash
 pip install anywhereinput
 anywhereinput --tunnel [cloudflare,tailscale,pinggy,zrok2,ngrok]
-anywhereinput
+anywhereinput --help
 ```
 
 ### Ubuntu (recommended): pipx install from PyPI
