@@ -464,7 +464,7 @@ def main():
     )
     parser.add_argument("--host", default="127.0.0.1", help="Server bind address (default: 127.0.0.1)")
     parser.add_argument("--port", type=int, default=8008, help="Server port (default: 8008)")
-    parser.add_argument("--fps", type=int, default=120, help="Screen capture FPS: 1-120 (default: 120)")
+    parser.add_argument("--fps", type=int, default=30, help="Screen capture FPS: 1-30 (default: 30)")
     parser.add_argument("--quality", type=int, default=85, help="JPEG quality: 1-95 (default: 85)")
     parser.add_argument("--scale", type=float, default=1.0, help="Screen scale factor: 0.1-1.0 (default: 1.0)")
     parser.add_argument("--no-capture", action="store_true", help="Disable screen capture entirely")
