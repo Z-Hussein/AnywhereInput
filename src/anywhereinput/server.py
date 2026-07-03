@@ -180,11 +180,29 @@ class AnywhereInputServer:
         self.app.router.add_get("/api/monitors", self.monitors_info)
         self.app.router.add_post("/api/monitor/{index}", self.set_monitor)
 
+    def _authenticate(self, request) -> bool:
+        """Validate the session token for HTTP API requests.
+
+        Accepts the token via `Authorization: Bearer <token>` header, with a
+        `?token=` query param fallback for callers that can't set headers.
+        """
+        auth_header = request.headers.get("Authorization", "")
+        token = ""
+        if auth_header.startswith("Bearer "):
+            token = auth_header[len("Bearer "):].strip()
+        if not token:
+            token = request.query.get("token", "")
+        return self.token_manager.validate(token)
+
     async def screen_info(self, request):
+        if not self._authenticate(request):
+            return web.json_response({"error": "Unauthorized"}, status=401)
         w, h = self.screen.dimensions
         return web.json_response({"width": w, "height": h})
 
     async def monitors_info(self, request):
+        if not self._authenticate(request):
+            return web.json_response({"error": "Unauthorized"}, status=401)
         return web.json_response({
             "monitors": self.screen.get_monitor_info(),
             "current": self.screen.current_monitor_index,
@@ -192,6 +210,8 @@ class AnywhereInputServer:
         })
 
     async def set_monitor(self, request):
+        if not self._authenticate(request):
+            return web.json_response({"error": "Unauthorized"}, status=401)
         try:
             idx = int(request.match_info["index"])
             ok = self.screen.set_monitor(idx)
@@ -204,10 +224,14 @@ class AnywhereInputServer:
             return web.json_response({"success": False, "error": "Invalid monitor index"}, status=400)
 
     async def websocket_handler(self, request):
-        # Origin validation to prevent CSRF on WebSocket
+        # Origin validation to prevent CSRF on WebSocket.
+        # Default-deny: a missing/empty Origin header is treated as NOT
+        # allowed, not as "skip the check." Browsers always send Origin for
+        # WebSocket upgrade requests, so this only blocks non-browser
+        # clients that omit it -- which is the point.
         origin = request.headers.get('Origin', '')
+        allowed = False
         if origin:
-            allowed = False
             host = request.headers.get('Host', '')
             if origin == f"http://{host}" or origin == f"https://{host}":
                 allowed = True
@@ -216,8 +240,8 @@ class AnywhereInputServer:
             elif origin in ('http://localhost:8008', 'https://localhost:8008',
                              'http://127.0.0.1:8008', 'https://127.0.0.1:8008'):
                 allowed = True
-            if not allowed:
-                return web.Response(status=403, text="Origin not allowed")
+        if not allowed:
+            return web.Response(status=403, text="Origin not allowed")
 
         ws = web.WebSocketResponse(heartbeat=30.0, timeout=5.0)
         await ws.prepare(request)
