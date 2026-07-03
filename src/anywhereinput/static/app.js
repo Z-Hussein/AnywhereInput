@@ -454,8 +454,11 @@ class AnywhereInputClient {
 
     async fetchScreenInfo() {
         const url = this.els.serverUrl.value.trim().replace(/\/$/, '');
+        const token = this.els.accessToken.value.trim();
         try {
-            const r = await fetch(url + '/api/screen');
+            const r = await fetch(url + '/api/screen', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
             const d = await r.json();
             this.screenWidth = d.width;
             this.screenHeight = d.height;
@@ -469,8 +472,11 @@ class AnywhereInputClient {
 
     async fetchMonitors() {
         const url = this.els.serverUrl.value.trim().replace(/\/$/, '');
+        const token = this.els.accessToken.value.trim();
         try {
-            const r = await fetch(url + '/api/monitors');
+            const r = await fetch(url + '/api/monitors', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
             const d = await r.json();
             this.monitors = d.monitors || [];
             if (this.monitors.length > 0) {
@@ -502,8 +508,12 @@ class AnywhereInputClient {
 
     async setMonitor(index) {
         const url = this.els.serverUrl.value.trim().replace(/\/$/, '');
+        const token = this.els.accessToken.value.trim();
         try {
-            const r = await fetch(url + '/api/monitor/' + index, { method: 'POST' });
+            const r = await fetch(url + '/api/monitor/' + index, {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
             const d = await r.json();
             if (d.success) {
                 this.monitors = d.monitors || this.monitors;
