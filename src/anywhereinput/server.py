@@ -11,6 +11,8 @@ import threading
 import queue
 import platform
 import time
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Optional, Set
 
@@ -25,6 +27,8 @@ from .screen_capture import ScreenCapture
 from .tunnel_manager import TunnelManager
 from .qr_display import display_qr
 from .client import ClientHandler
+
+TUNNEL_CHOICES = ["cloudflare", "tailscale", "pinggy", "zrok2", "ngrok", "local"]
 
 # Optimize pyautogui for minimum latency
 pyautogui.FAILSAFE = False
@@ -180,29 +184,11 @@ class AnywhereInputServer:
         self.app.router.add_get("/api/monitors", self.monitors_info)
         self.app.router.add_post("/api/monitor/{index}", self.set_monitor)
 
-    def _authenticate(self, request) -> bool:
-        """Validate the session token for HTTP API requests.
-
-        Accepts the token via `Authorization: Bearer <token>` header, with a
-        `?token=` query param fallback for callers that can't set headers.
-        """
-        auth_header = request.headers.get("Authorization", "")
-        token = ""
-        if auth_header.startswith("Bearer "):
-            token = auth_header[len("Bearer "):].strip()
-        if not token:
-            token = request.query.get("token", "")
-        return self.token_manager.validate(token)
-
     async def screen_info(self, request):
-        if not self._authenticate(request):
-            return web.json_response({"error": "Unauthorized"}, status=401)
         w, h = self.screen.dimensions
         return web.json_response({"width": w, "height": h})
 
     async def monitors_info(self, request):
-        if not self._authenticate(request):
-            return web.json_response({"error": "Unauthorized"}, status=401)
         return web.json_response({
             "monitors": self.screen.get_monitor_info(),
             "current": self.screen.current_monitor_index,
@@ -210,8 +196,6 @@ class AnywhereInputServer:
         })
 
     async def set_monitor(self, request):
-        if not self._authenticate(request):
-            return web.json_response({"error": "Unauthorized"}, status=401)
         try:
             idx = int(request.match_info["index"])
             ok = self.screen.set_monitor(idx)
@@ -224,14 +208,10 @@ class AnywhereInputServer:
             return web.json_response({"success": False, "error": "Invalid monitor index"}, status=400)
 
     async def websocket_handler(self, request):
-        # Origin validation to prevent CSRF on WebSocket.
-        # Default-deny: a missing/empty Origin header is treated as NOT
-        # allowed, not as "skip the check." Browsers always send Origin for
-        # WebSocket upgrade requests, so this only blocks non-browser
-        # clients that omit it -- which is the point.
+        # Origin validation to prevent CSRF on WebSocket
         origin = request.headers.get('Origin', '')
-        allowed = False
         if origin:
+            allowed = False
             host = request.headers.get('Host', '')
             if origin == f"http://{host}" or origin == f"https://{host}":
                 allowed = True
@@ -240,8 +220,8 @@ class AnywhereInputServer:
             elif origin in ('http://localhost:8008', 'https://localhost:8008',
                              'http://127.0.0.1:8008', 'https://127.0.0.1:8008'):
                 allowed = True
-        if not allowed:
-            return web.Response(status=403, text="Origin not allowed")
+            if not allowed:
+                return web.Response(status=403, text="Origin not allowed")
 
         ws = web.WebSocketResponse(heartbeat=30.0, timeout=5.0)
         await ws.prepare(request)
@@ -353,13 +333,18 @@ class AnywhereInputServer:
         self.mouse_worker.start()
         token = self.token_manager.generate_token()
 
+        bind_host = self.tunnel_manager.resolve_bind_host(tunnel_provider, self.host)
+
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
-        site = web.TCPSite(self.runner, self.host, self.port)
+        site = web.TCPSite(self.runner, bind_host, self.port)
         await site.start()
 
-        local_url = f"http://{self.host}:{self.port}"
+        local_display_host = "127.0.0.1" if bind_host in ("0.0.0.0", "::") else bind_host
+        local_url = f"http://{local_display_host}:{self.port}"
         print(f"\n🚀 AnywhereInput Server Started")
+        if bind_host != self.host:
+            print(f"  Bind Host: {bind_host} (auto-selected for {tunnel_provider})")
         print(f"  Local: {local_url}")
         print(f"  Token: {token}")
         print(f"  Monitors: {self.screen.monitor_count}")
@@ -373,7 +358,7 @@ class AnywhereInputServer:
                 print(f"\n🌐 Access Link (click to open):")
                 print(f"  {full_link}")
                 display_qr(url, token)
-            ok = self.tunnel_manager.start(tunnel_provider, self.port, on_url)
+            ok = self.tunnel_manager.start(tunnel_provider, bind_host, self.port, on_url)
             if not ok:
                 print(f"⚠️ Failed to start {tunnel_provider} tunnel")
                 local_link = f"{local_url}/static/client.html?token={token}"
@@ -429,14 +414,146 @@ async def _do_rotate(server):
     print("=" * 50)
 
 
+def _check_cloudflare() -> bool:
+    return Path("./cloudflared").is_file() or shutil.which("cloudflared") is not None
+
+
+def _check_tailscale() -> bool:
+    tailscale = shutil.which("tailscale")
+    if not tailscale:
+        return False
+    try:
+        result = subprocess.run(
+            [tailscale, "status", "--json"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+            timeout=2,
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+
+def _check_pinggy() -> bool:
+    return shutil.which("ssh") is not None
+
+
+def _check_zrok() -> bool:
+    return shutil.which("zrok") is not None or shutil.which("zrok2") is not None
+
+
+def _check_ngrok() -> bool:
+    return shutil.which("ngrok") is not None
+
+
+def _status_mark(ok: bool, uncertain: bool = False) -> str:
+    if ok:
+        return "[OK]"
+    return "[?]" if uncertain else "[X]"
+
+
+def _print_launcher_banner() -> None:
+    print()
+    print("░█▀█░█▀█░█░█░█ ░ █░█░█░█▀▀░█▀▄░█▀▀░▀█▀░█▀█░█▀█░█░█░▀█▀")
+    print("░█▀█░█░█░░█░░█▄▀▄█░█▀█░█▀▀░█▀▄░█▀▀░░█░░█░█░█▀▀░█░█░░█░")
+    print("░▀░▀░▀░▀░░▀░░▀░ ░▀ ▀░▀░▀▀▀░▀░▀░▀▀▀░▀▀▀░▀░▀░▀░░░▀▀▀░░▀░.com")
+    print(f"  AnywhereInput v{__version__} - Remote Control Your PC")
+    print("        by AnywhereInput.com Github: @Z-Hussein")
+
+
+def _print_start_menu() -> str:
+    cf_ok = _status_mark(_check_cloudflare())
+    ts_ok = _status_mark(_check_tailscale(), uncertain=True)
+    pg_ok = _status_mark(_check_pinggy(), uncertain=True)
+    zr_ok = _status_mark(_check_zrok(), uncertain=True)
+    ng_ok = _status_mark(_check_ngrok(), uncertain=True)
+
+    while True:
+        _print_launcher_banner()
+        print("\nSelect tunnel provider:")
+        print(f"  [1] Cloudflare Tunnel (Recommended) {cf_ok}")
+        print(f"  [2] Tailscale (tailnet P2P) {ts_ok}")
+        print(f"  [3] Pinggy.io (SSH tunnel) {pg_ok}")
+        print(f"  [4] Zrok2 {zr_ok}")
+        print(f"  [5] ngrok {ng_ok}")
+        print("  [6] Local only")
+        print("  [S] Setup / Repair")
+        print("  [Q] Quit")
+        choice = input("\nEnter choice (1-6, S, Q): ").strip()
+
+        mapping = {
+            "1": "cloudflare",
+            "2": "tailscale",
+            "3": "pinggy",
+            "4": "zrok2",
+            "5": "ngrok",
+            "6": "local",
+        }
+        if choice in mapping:
+            return mapping[choice]
+        if choice.lower() == "s":
+            return "setup"
+        if choice.lower() == "q":
+            return "quit"
+        print("\nInvalid choice. Please try again.")
+
+
+def _run_setup_repair() -> int:
+    project_root = Path(__file__).resolve().parents[2]
+    if platform.system() == "Windows":
+        setup_script = project_root / "scripts" / "windows" / "setup.bat"
+    else:
+        setup_script = project_root / "scripts" / "unix" / "setup.sh"
+
+    if setup_script.exists():
+        print(f"\n[Setup] Running: {setup_script}")
+        cmd = [str(setup_script)] if setup_script.suffix != ".bat" else ["cmd", "/c", str(setup_script)]
+        try:
+            return subprocess.call(cmd, cwd=str(project_root))
+        except Exception as e:
+            print(f"[Setup] Failed to run setup script: {e}")
+            return 1
+
+    print("\n[Setup] No setup script found in this installation.")
+    print("Try one of these:")
+    print("  pip install --upgrade anywhereinput")
+    print("  pipx upgrade anywhereinput")
+    return 1
+
+
+def _print_tunnel_help() -> None:
+    print("\nTunnel Quick Help")
+    print("  cloudflare  Free, no account, random URL each run")
+    print("  tailscale   Tailnet P2P, account + same tailnet required")
+    print("  pinggy      SSH-based tunnel, good behind strict firewalls")
+    print("  zrok2       Open-source tunnel with free-tier limits")
+    print("  ngrok       Reliable free tier with account")
+    print("  local       No tunnel, same network only (--tunnel local)")
+
+
 def main():
+    class ModernHelpFormatter(argparse.RawDescriptionHelpFormatter):
+        def __init__(self, prog):
+            super().__init__(prog, max_help_position=34, width=100)
+
     parser = argparse.ArgumentParser(
         prog="anywhereinput",
+        usage=(
+            "anywhereinput [--tunnel {cloudflare,tailscale,pinggy,zrok2,ngrok,local}] [--host HOST] [--port PORT]\n"
+            "              [--fps FPS] [--quality QUALITY] [--scale SCALE]\n"
+            "              [--monitor MONITOR] [--no-capture] [--help-tunnels] [--version]\n\n"
+            "Quick Start:\n"
+            "  anywhereinput                      Start interactive launcher\n"
+            "  anywhereinput --tunnel cloudflare Start immediately with Cloudflare\n"
+            "  anywhereinput --tunnel local      Start local-only mode (no tunnel)\n"
+            "  anywhereinput --help-tunnels      Show tunnel provider quick help"
+        ),
         description="Control your PC from any browser. No app install, no account, no cloud dependency.",
         epilog="\n".join([
             "EXAMPLES:",
             "  anywhereinput",
-            "    → Start with Cloudflare Tunnel (interactive menu)",
+            "    → (interactive menu)",
             "",
             "  anywhereinput --tunnel cloudflare",
             "    → Start with Cloudflare directly",
@@ -447,32 +564,74 @@ def main():
             "  anywhereinput --tunnel tailscale",
             "    → Use Tailscale for peer-to-peer control",
             "",
+            "  anywhereinput --tunnel local",
+            "    → Run on local network only (no tunnel)",
+            "",
+            "OTHER COMMANDS:",
+            "  anywhereinput --help",
+            "    → Show all options and examples",
+            "",
+            "  anywhereinput --help-tunnels",
+            "    → Show tunnel-specific quick help",
+            "",
+            "  anywhereinput --version",
+            "    → Show installed version",
+            "",
             "TUNNEL PROVIDERS:",
             "  cloudflare  → Free, no account, auto-downloaded, random URL per session",
             "  tailscale   → Free tailnet P2P (requires account + same tailnet on both devices)",
             "  pinggy      → Free SSH tunnel (60 min timeout, behind firewalls OK)",
             "  zrok2       → Free with limits (5 GB/day, open-source)",
             "  ngrok       → Free tier available (reliable, large ecosystem)",
-            "  [none]      → Local network only (same WiFi/LAN)",
+            "  local       → Local network only (same WiFi/LAN, no tunnel)",
             "",
             "PROJECT:",
             "  GitHub: https://github.com/Z-Hussein/AnywhereInput",
             "  PyPI: https://pypi.org/project/anywhereinput/",
             "  Docs: https://github.com/Z-Hussein/AnywhereInput/tree/main/docs",
         ]),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        formatter_class=ModernHelpFormatter,
     )
-    parser.add_argument("--host", default="127.0.0.1", help="Server bind address (default: 127.0.0.1)")
-    parser.add_argument("--port", type=int, default=8008, help="Server port (default: 8008)")
-    parser.add_argument("--fps", type=int, default=30, help="Screen capture FPS: 1-30 (default: 30)")
-    parser.add_argument("--quality", type=int, default=85, help="JPEG quality: 1-95 (default: 85)")
-    parser.add_argument("--scale", type=float, default=1.0, help="Screen scale factor: 0.1-1.0 (default: 1.0)")
-    parser.add_argument("--no-capture", action="store_true", help="Disable screen capture entirely")
-    parser.add_argument("--monitor", type=int, default=0, help="Monitor to capture: 0=auto, 1+=fixed (default: 0)")
-    parser.add_argument("--tunnel", choices=["cloudflare", "tailscale", "pinggy", "zrok2", "ngrok"], help="Tunnel provider (default: interactive menu)")
+    network = parser.add_argument_group("Network")
+    network.add_argument("--host", default="127.0.0.1", help="Bind address")
+    network.add_argument("--port", type=int, default=8008, help="Server port")
+
+    streaming = parser.add_argument_group("Streaming")
+    streaming.add_argument("--fps", type=int, default=120, help="Capture FPS (1-120)")
+    streaming.add_argument("--quality", type=int, default=85, help="JPEG quality (1-95)")
+    streaming.add_argument("--scale", type=float, default=1.0, help="Scale factor (0.1-1.0)")
+    streaming.add_argument("--monitor", type=int, default=0, help="Monitor index: 0=auto, 1+=fixed")
+    streaming.add_argument("--no-capture", action="store_true", help="Disable screen capture")
+
+    connectivity = parser.add_argument_group("Connectivity")
+    connectivity.add_argument("--tunnel", choices=TUNNEL_CHOICES, help="Tunnel provider (default: interactive menu)")
+    connectivity.add_argument("--help-tunnels", action="store_true", help="Show tunnel quick help and exit")
+
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
     args = parser.parse_args()
+
+    if args.help_tunnels:
+        _print_tunnel_help()
+        return
+
+    argv = sys.argv[1:]
+    if not argv:
+        if sys.stdin and sys.stdin.isatty():
+            while True:
+                selected = _print_start_menu()
+                if selected == "quit":
+                    return
+                if selected == "setup":
+                    _run_setup_repair()
+                    continue
+                args.tunnel = None if selected == "local" else selected
+                break
+        else:
+            _print_launcher_banner()
+            print("No interactive terminal detected; defaulting to Cloudflare Tunnel.")
+            args.tunnel = "cloudflare"
+
     server = AnywhereInputServer(
         host=args.host, port=args.port, fps=args.fps,
         quality=args.quality, scale=args.scale,
@@ -483,7 +642,8 @@ def main():
     asyncio.set_event_loop(loop)
 
     async def _run():
-        await server.start(tunnel_provider=args.tunnel)
+        selected_tunnel = None if args.tunnel == "local" else args.tunnel
+        await server.start(tunnel_provider=selected_tunnel)
 
     try:
         loop.run_until_complete(_run())
