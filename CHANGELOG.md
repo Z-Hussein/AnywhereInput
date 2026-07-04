@@ -5,14 +5,54 @@ All notable changes to AnywhereInput will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
 
 ### Planned
-- HTTPS on local network (self-signed cert or local CA)
-- WebSocket reconnection with exponential backoff
-- Input validation and rate limiting on WebSocket commands
-- Graceful capture engine recovery on crash
-- Persistent client settings (localStorage for preferences)
+- Admin controls (start with IP allowlist + per-client input permissions).
+- Persistent client settings.
+- Audio streaming
+
+
+## [1.1.6] - 2026-07-04
+
+### Fixed
+- Screen-capture state callback deadlock that could block engine-status requests while transitioning states.
+- Shutdown noise during Ctrl+C by draining pending asyncio tasks before loop close.
+- Tunnel process cleanup now handles interrupt timing more gracefully during stop.
+
+
+## [1.1.5] - 2026-07-04
+
+### Added
+- New `--help-tunnels` command for concise provider-specific guidance.
+- Explicit `--tunnel local` mode for local-network operation with no tunnel.
+- Engine status API endpoint: `GET /api/engine` (state, failure count, recovery timer, last error).
+- Client engine-state badge in the stream header (`HEALTHY`, `DEGRADED`, `RECOVERING`, `OFFLINE`).
+- Screen capture status overlay in the web client for recovery/error states (`screen_status` events).
+
+### Changed
+- `anywhereinput` with no arguments now behaves like launcher scripts:
+  - Interactive provider menu in TTY terminals.
+  - Automatic Cloudflare startup when running non-interactively (no TTY).
+- CLI help output redesigned with a modern, multi-line usage layout and grouped sections (`Network`, `Streaming`, `Connectivity`).
+- Interactive CLI flow now prints the launcher banner for parity with `run.sh` and `run.bat` UX.
+- Runtime dependencies are now pinned to exact versions for reproducible installs and stronger supply-chain control.
+- Removed unused runtime dependencies (`pyotp`, `click`) to reduce attack surface.
+- `MouseWorker` now includes resilience controls:
+  - Input-error classification (`transient`, `degraded`, `failed`)
+  - Exponential backoff cooldown on repeated failures
+  - Bounded command age (TTL) to drop stale queued inputs safely
+- WebSocket command handling now emits engine-aware recovery errors:
+  - `capture_error` while recovering/degraded
+  - `capture_engine_offline` when offline
+- Frontend now disables touch/input controls while engine is recovering/offline and re-enables on healthy state.
+- Screen broadcast loop now emits additive `screen_status` updates during capture recovery windows without interrupting normal `screen` frame flow.
+- Screen-capture state changes are now propagated to clients through a thread-safe server broadcast path.
+- `GET /api/engine` now includes `screen_engine` state metadata alongside existing input-engine fields.
+
+### Fixed
+- Removed command/help mismatches by unifying documented and accepted tunnel values across parser choices, examples, and tunnel help text.
+- Full pytest run no longer requires manual server startup (`tests/ws_test.py` is now self-contained).
+
 
 ---
 
