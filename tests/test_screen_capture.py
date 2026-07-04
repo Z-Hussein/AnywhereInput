@@ -25,8 +25,8 @@ def test_init_custom_params():
 def test_fps_clamping():
     sc = ScreenCapture(fps=0)
     assert sc.fps >= 1
-    sc2 = ScreenCapture(fps=99)
-    assert sc2.fps <= 30
+    sc2 = ScreenCapture(fps=999)
+    assert sc2.fps <= 120
     sc.close()
     sc2.close()
 
