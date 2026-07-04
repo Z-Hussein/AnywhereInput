@@ -49,19 +49,69 @@ class MouseWorker(threading.Thread):
         self.smoothing = 0.95
         self.min_step = 1.0
         self.mouse_down_state = {}
+        self.max_queue_age_seconds = 2.0
+        self.base_recovery_backoff_seconds = 0.05
+        self.max_recovery_backoff_seconds = 1.0
+        self.max_failures_before_long_backoff = 5
+        self.max_failures_before_offline = 12
+        self.consecutive_failures = 0
+        self.recovering_until = 0.0
+        self.last_error = ""
+
+    def get_engine_state(self) -> str:
+        now = time.monotonic()
+        if self.consecutive_failures >= self.max_failures_before_offline:
+            return "offline"
+        if now < self.recovering_until:
+            return "recovering"
+        if self.consecutive_failures > 0:
+            return "degraded"
+        return "healthy"
+
+    def get_engine_status(self) -> dict:
+        now = time.monotonic()
+        return {
+            "state": self.get_engine_state(),
+            "consecutive_failures": self.consecutive_failures,
+            "recovering_for_seconds": max(0.0, self.recovering_until - now),
+            "last_error": self.last_error,
+        }
+
+    def _current_backoff(self) -> float:
+        backoff = self.base_recovery_backoff_seconds * (2 ** max(0, self.consecutive_failures - 1))
+        if self.consecutive_failures >= self.max_failures_before_long_backoff:
+            backoff = max(backoff, 0.5)
+        return min(backoff, self.max_recovery_backoff_seconds)
+
+    @staticmethod
+    def _classify_input_error(err: Exception) -> str:
+        e = str(err).lower()
+        if any(k in e for k in ("access denied", "permission", "blocked", "uac", "privilege")):
+            return "degraded"
+        if any(k in e for k in ("display", "screen", "monitor", "rdp", "disconnect")):
+            return "failed"
+        return "transient"
 
     def enqueue(self, item):
         """Thread-safe enqueue with drop-on-full to prevent memory explosion."""
+        queued_item = dict(item)
+        queued_item["_enqueued_at"] = time.monotonic()
         try:
-            self.queue.put_nowait(item)
+            self.queue.put_nowait(queued_item)
         except queue.Full:
             print("[MouseWorker] Queue full, dropping input")
 
     def run(self):
         while self.running:
             try:
+                now = time.monotonic()
+                if now < self.recovering_until:
+                    threading.Event().wait(self.recovering_until - now)
+                    continue
+
                 dx_total = dy_total = 0
                 mode = None
+                handled_any = False
 
                 # Batch process up to 20 items per tick to prevent lag buildup
                 items = []
@@ -73,38 +123,50 @@ class MouseWorker(threading.Thread):
 
                 with self.lock:
                     for item in items:
+                        age = time.monotonic() - item.get("_enqueued_at", time.monotonic())
+                        if age > self.max_queue_age_seconds:
+                            continue
+
                         t = item.get("type")
                         if t == "move_relative":
                             dx_total += item.get("dx", 0)
                             dy_total += item.get("dy", 0)
                             mode = "relative"
+                            handled_any = True
                         elif t == "move_absolute":
                             self.target_x = item.get("x", self.target_x)
                             self.target_y = item.get("y", self.target_y)
                             mode = "absolute"
+                            handled_any = True
                         elif t == "click":
                             pyautogui.click(
                                 button=item.get("button", "left"),
                                 clicks=item.get("clicks", 1)
                             )
+                            handled_any = True
                         elif t == "mouse_down":
                             btn = item.get("button", "left")
                             if not self.mouse_down_state.get(btn, False):
                                 pyautogui.mouseDown(button=btn)
                                 self.mouse_down_state[btn] = True
+                            handled_any = True
                         elif t == "mouse_up":
                             btn = item.get("button", "left")
                             if self.mouse_down_state.get(btn, False):
                                 pyautogui.mouseUp(button=btn)
                                 self.mouse_down_state[btn] = False
+                            handled_any = True
                         elif t == "scroll":
                             pyautogui.scroll(item.get("amount", 0))
+                            handled_any = True
                         elif t == "key":
                             pyautogui.press(item.get("key", ""))
+                            handled_any = True
                         elif t == "type":
                             text = item.get("text", "")
                             if text:
                                 pyautogui.typewrite(text, interval=0.01)
+                                handled_any = True
                         elif t == "hotkey":
                             keys = item.get("keys", "")
                             if keys:
@@ -126,6 +188,7 @@ class MouseWorker(threading.Thread):
                                         for key in reversed(keys[:-1]):
                                             pyautogui.keyUp(key)
                                         print(f"Hotkey executed: {'+'.join(k.upper() for k in keys)}")
+                                        handled_any = True
                                     except Exception as e:
                                         print(f"Hotkey {keys} failed: {e}")
 
@@ -141,11 +204,24 @@ class MouseWorker(threading.Thread):
                     self.current_x = self.target_x
                     self.current_y = self.target_y
                     pyautogui.moveTo(int(self.current_x), int(self.current_y), duration=0)
+                    handled_any = True
+
+                if handled_any and self.consecutive_failures:
+                    self.consecutive_failures = 0
+                    self.recovering_until = 0.0
 
                 threading.Event().wait(0.008)
             except Exception as e:
-                print(f"[MouseWorker] Error: {e}")
-                threading.Event().wait(0.1)
+                self.consecutive_failures += 1
+                state = self._classify_input_error(e)
+                backoff = self._current_backoff()
+                self.recovering_until = time.monotonic() + backoff
+                self.last_error = str(e)
+                print(
+                    f"[MouseWorker] {state} input error: {e} | "
+                    f"failures={self.consecutive_failures} backoff={backoff:.2f}s"
+                )
+                threading.Event().wait(backoff)
 
     def stop(self):
         self.running = False
@@ -163,12 +239,21 @@ class AnywhereInputServer:
         self.host = host
         self.port = port
         self.token_manager = TokenManager()
-        self.screen = ScreenCapture(fps=fps, quality=quality, scale=scale, monitor_index=monitor if monitor > 0 else None)
-        self.screen.enabled = not no_capture
         self.tunnel_manager = TunnelManager()
         self.client_handler = ClientHandler()
         self.clients: Set[web.WebSocketResponse] = set()
         self.clients_lock = asyncio.Lock()
+        self._event_loop: Optional[asyncio.AbstractEventLoop] = None
+
+        self.screen = ScreenCapture(
+            fps=fps,
+            quality=quality,
+            scale=scale,
+            monitor_index=monitor if monitor > 0 else None,
+            on_state_change=self._on_screen_state_change,
+        )
+        self.screen.enabled = not no_capture
+
         self.app = web.Application()
         self.runner: Optional[web.AppRunner] = None
         self._setup_routes()
@@ -181,12 +266,65 @@ class AnywhereInputServer:
         self.app.router.add_get("/static/{filename}", self.client_handler.static_file)
         self.app.router.add_get("/ws", self.websocket_handler)
         self.app.router.add_get("/api/screen", self.screen_info)
+        self.app.router.add_get("/api/engine", self.engine_info)
         self.app.router.add_get("/api/monitors", self.monitors_info)
         self.app.router.add_post("/api/monitor/{index}", self.set_monitor)
 
     async def screen_info(self, request):
         w, h = self.screen.dimensions
         return web.json_response({"width": w, "height": h})
+
+    async def engine_info(self, request):
+        status = self.mouse_worker.get_engine_status()
+        screen_state = getattr(getattr(self.screen, "state", None), "name", "HEALTHY").lower()
+        status["screen_engine"] = {
+            "state": screen_state,
+            "enabled": self.screen.enabled,
+        }
+        return web.json_response(status)
+
+    def _screen_status_message(self) -> str:
+        state_name = getattr(getattr(self.screen, "state", None), "name", "HEALTHY")
+        if state_name == "REBUILDING":
+            return "Reconnecting to display..."
+        if state_name == "DEGRADED":
+            return "Screen stream reduced quality"
+        if state_name == "FAILED":
+            return "Screen capture failed - retrying"
+        if state_name == "OFFLINE":
+            return "Screen capture unavailable"
+        return ""
+
+    async def _broadcast_to_all(self, msg: str):
+        dead = set()
+        async with self.clients_lock:
+            client_list = list(self.clients)
+        for ws in client_list:
+            try:
+                await ws.send_str(msg)
+            except Exception:
+                dead.add(ws)
+        if dead:
+            async with self.clients_lock:
+                self.clients -= dead
+
+    def _on_screen_state_change(self, state):
+        if not self.clients:
+            return
+        if not self._event_loop or self._event_loop.is_closed():
+            return
+
+        message = self._screen_status_message()
+        msg = json.dumps({
+            "type": "screen_status",
+            "status": state.name.lower(),
+            "message": message,
+        })
+
+        def _schedule_broadcast():
+            asyncio.create_task(self._broadcast_to_all(msg))
+
+        self._event_loop.call_soon_threadsafe(_schedule_broadcast)
 
     async def monitors_info(self, request):
         return web.json_response({
@@ -261,6 +399,25 @@ class AnywhereInputServer:
 
     async def _handle_message(self, ws, data):
         t = data.get("type")
+
+        guarded_input_types = {
+            "move", "click", "double_click", "mouse_down", "mouse_up", "scroll", "key", "type", "hotkey"
+        }
+        if t in guarded_input_types:
+            engine_state = self.mouse_worker.get_engine_state()
+            if engine_state == "offline":
+                await ws.send_json({
+                    "error": "capture_engine_offline",
+                    "message": "Input engine is offline. Retry shortly.",
+                })
+                return
+            if engine_state in {"recovering", "degraded"}:
+                await ws.send_json({
+                    "error": "capture_error",
+                    "message": "Input engine is recovering.",
+                    "recovering": engine_state == "recovering",
+                })
+
         if t == "ping":
             await ws.send_json({"type": "pong"})
         elif t == "move":
@@ -304,25 +461,34 @@ class AnywhereInputServer:
     async def _broadcast_screen(self):
         frame_interval = 1.0 / self.screen.fps
         loop = asyncio.get_event_loop()
+        last_state = None
+        empty_frame_count = 0
         while self._running:
             try:
                 if self.clients and self.screen.enabled:
                     # Run capture in thread pool to avoid blocking event loop
                     frame = await loop.run_in_executor(None, self.screen.capture)
                     if frame:
+                        empty_frame_count = 0
                         b64 = base64.b64encode(frame).decode('utf-8')
                         msg = json.dumps({"type": "screen", "data": b64})
-                        dead = set()
-                        async with self.clients_lock:
-                            client_list = list(self.clients)
-                        for ws in client_list:
-                            try:
-                                await ws.send_str(msg)
-                            except Exception:
-                                dead.add(ws)
-                        if dead:
-                            async with self.clients_lock:
-                                self.clients -= dead
+                        await self._broadcast_to_all(msg)
+                    else:
+                        empty_frame_count += 1
+                        if empty_frame_count >= 5:
+                            status_name = getattr(getattr(self.screen, "state", None), "name", "HEALTHY").lower()
+                            notify = json.dumps({
+                                "type": "screen_status",
+                                "status": status_name,
+                                "message": self._screen_status_message(),
+                            })
+                            await self._broadcast_to_all(notify)
+                            empty_frame_count = 0
+
+                    current_state = getattr(getattr(self.screen, "state", None), "name", "HEALTHY")
+                    if current_state != last_state:
+                        last_state = current_state
+                        print(f"[Screen] State: {current_state}")
                 await asyncio.sleep(frame_interval)
             except Exception as e:
                 print(f"[Screen] Error: {e}")
@@ -330,6 +496,7 @@ class AnywhereInputServer:
 
     async def start(self, tunnel_provider=None):
         self._running = True
+        self._event_loop = asyncio.get_running_loop()
         self.mouse_worker.start()
         token = self.token_manager.generate_token()
 
@@ -662,13 +829,13 @@ def main():
                 for ws in list(server.clients):
                     try:
                         await ws.close()
-                    except Exception:
+                    except BaseException:
                         pass
                 server.clients.clear()
 
         try:
             loop.run_until_complete(asyncio.wait_for(_cleanup_clients(), timeout=2))
-        except Exception:
+        except BaseException:
             pass
 
         if server.runner:
@@ -676,6 +843,15 @@ def main():
                 loop.run_until_complete(server.runner.cleanup())
             except Exception:
                 pass
+
+        try:
+            pending = [t for t in asyncio.all_tasks(loop) if not t.done()]
+            for task in pending:
+                task.cancel()
+            if pending:
+                loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+        except Exception:
+            pass
 
         server.screen.close()
         print("\n✅ Server stopped")
