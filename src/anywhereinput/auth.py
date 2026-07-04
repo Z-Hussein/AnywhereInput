@@ -60,13 +60,29 @@ class TokenManager:
         if self.token_file.exists():
             try:
                 with open(self.token_file, 'r') as f:
-                    self.tokens = json.load(f)
+                    all_tokens = json.load(f)
+                    if all_tokens:
+                        # If multiple tokens exist (legacy), keep only the most recent
+                        sorted_tokens = sorted(all_tokens.items(), key=lambda x: x[1].get("created", ""), reverse=True)
+                        self.tokens = dict([sorted_tokens[0]])
+                    else:
+                        self.tokens = {}
             except (json.JSONDecodeError, IOError):
                 self.tokens = {}
 
     def _save_tokens(self) -> None:
+        """Save tokens, keeping only the most recent one."""
+        if not self.tokens:
+            with open(self.token_file, 'w') as f:
+                json.dump({}, f, indent=2)
+            return
+        
+        # Sort tokens by creation time and keep only the most recent
+        sorted_tokens = sorted(self.tokens.items(), key=lambda x: x[1].get("created", ""), reverse=True)
+        latest_token = dict([sorted_tokens[0]])
+        
         with open(self.token_file, 'w') as f:
-            json.dump(self.tokens, f, indent=2)
+            json.dump(latest_token, f, indent=2)
 
     @staticmethod
     def _timestamp() -> str:
