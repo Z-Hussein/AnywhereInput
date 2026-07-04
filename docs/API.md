@@ -52,6 +52,25 @@ Positive = up, negative = down.
 ```
 Server responds with `{"type": "pong"}`.
 
+## Server Events
+
+### Screen Frame
+```json
+{"type": "screen", "data": "<base64-jpeg>"}
+```
+
+### Screen Capture Status
+```json
+{"type": "screen_status", "status": "rebuilding", "message": "Reconnecting to display..."}
+```
+Status values include: `healthy`, `degraded`, `rebuilding`, `failed`, `offline`.
+
+### Engine Recovery/Error Signals
+```json
+{"error": "capture_error", "message": "Input engine is recovering.", "recovering": true}
+{"error": "capture_engine_offline", "message": "Input engine is offline. Retry shortly."}
+```
+
 ## HTTP Endpoints
 
 ### GET /api/screen
@@ -64,8 +83,8 @@ Returns screen dimensions:
 Returns monitor information:
 ```json
 {
-  "monitors": [{"index": 0, "name": "Primary", "width": 1920, "height": 1080}],
-  "current": 0,
+  "monitors": [{"index": 1, "left": 0, "top": 0, "width": 1920, "height": 1080, "primary": true}],
+  "current": 1,
   "auto_track": true
 }
 ```
@@ -76,8 +95,17 @@ Switches the capture monitor:
 {"success": true, "monitor": 1, "auto_track": false}
 ```
 
-### GET /api/token
-Returns the current active token:
+### GET /api/engine
+Returns input engine state plus screen capture engine state:
 ```json
-{"token": "<current-token>"}
+{
+  "state": "healthy",
+  "failure_count": 0,
+  "cooldown_seconds": 0.0,
+  "last_error": null,
+  "screen_engine": {
+    "state": "healthy",
+    "enabled": true
+  }
+}
 ```
