@@ -1,0 +1,22 @@
+capture_engine_recovery:
+  # Health check interval in seconds
+  health_check_interval: 5.0
+  
+  # Max consecutive failures before marking offline
+  max_failures: 5
+  
+  # Exponential backoff settings
+  base_backoff_seconds: 1.0
+  max_backoff_seconds: 30.0
+  
+  # Windows-specific
+  windows:
+    detect_uac: true
+    detect_session_lock: true
+    wake_on_recovery: true
+    
+  # Fallback behavior when engine fails
+  fallback:
+    queue_commands: true
+    max_queue_size: 100
+    queue_timeout_seconds: 30
