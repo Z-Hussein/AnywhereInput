@@ -7,7 +7,6 @@ Read this before first run.
 - If token leaks, restart server to rotate token.
 - Expected disconnects: only on server stop or explicit client disconnect.
 - Monitor selector should list all detected displays plus Auto mode.
-- For full details, see docs/IMPORTANT.md.
 
 ## Fast validation
 
