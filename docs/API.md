@@ -46,6 +46,12 @@ Positive = up, negative = down.
 {"type": "screen_toggle", "enabled": true}
 ```
 
+### Restart Stream Capture
+```json
+{"type": "screen_restart"}
+```
+Forces the capture engine to tear down and rebuild. Use when the stream freezes or shows a black/dead screen.
+
 ### Ping
 ```json
 {"type": "ping"}
@@ -73,13 +79,84 @@ Status values include: `healthy`, `degraded`, `rebuilding`, `failed`, `offline`.
 
 ## HTTP Endpoints
 
-### GET /api/screen
+### Token Management
+
+#### GET /api/tokens
+List all active tokens (values are truncated to first 12 chars).
+```json
+{
+  "tokens": [
+    {
+      "token": "abc123...",
+      "full_token": "<full-value>",
+      "name": "manual",
+      "created": "2026-07-06T11:00:00+00:00",
+      "permissions": ["move", "click", "scroll"]
+    }
+  ]
+}
+```
+
+#### POST /api/tokens
+Create a new token. Send JSON body:
+```json
+{
+  "name": "guest-device",
+  "permissions": ["move", "click", "scroll"]
+}
+```
+Response (201):
+```json
+{
+  "token": "<new-token>",
+  "name": "guest-device",
+  "permissions": ["move", "click", "scroll"]
+}
+```
+Accepted fields: `name` / `label`, `permissions`. Permissions default to all if omitted.
+
+#### PATCH /api/tokens/{token}
+Update an existing token's name or permissions. `{token}` is the **full** token value.
+Request body:
+```json
+{
+  "name": "renamed",
+  "permissions": ["move", "ping"]
+}
+```
+Response (200):
+```json
+{"ok": true, "token": {"name": "renamed", ...}}
+```
+
+#### DELETE /api/tokens/{token}
+Revoke a token. `{token}` is the **full** token value.
+Response: `{"ok": true}` or 404 if not found.
+
+### Connected Clients
+
+#### GET /api/clients
+List currently connected WebSocket clients.
+```json
+{
+  "count": 2,
+  "clients": [
+    {"id": "<identifier>", "ip": "192.168.x.x:54321", "connected": true}
+  ]
+}
+```
+
+---
+
+### Screen & Engine Info
+
+#### GET /api/screen
 Returns screen dimensions:
 ```json
 {"width": 1920, "height": 1080}
 ```
 
-### GET /api/monitors
+#### GET /api/monitors
 Returns monitor information:
 ```json
 {
