@@ -1,14 +1,14 @@
 """Client serving the web UI."""
 
-import os
 from pathlib import Path
+from typing import Optional
 from aiohttp import web
 
 
 class ClientHandler:
     """Serves the HTML/JS/CSS client files with path traversal protection."""
 
-    def __init__(self, static_dir: str = None):
+    def __init__(self, static_dir: Optional[str] = None):
         if static_dir is None:
             self.static_dir = Path(__file__).parent / "static"
         else:
@@ -20,7 +20,7 @@ class ClientHandler:
         """Serve the main client HTML."""
         index_file = self._static_dir_resolved / "client.html"
         if index_file.exists() and index_file.is_file():
-            with open(index_file, 'r', encoding='utf-8') as f:
+            with open(index_file, "r", encoding="utf-8") as f:
                 content = f.read()
             return web.Response(text=content, content_type="text/html")
         return web.Response(text="Client not found", status=404)
@@ -42,7 +42,35 @@ class ClientHandler:
             return web.Response(text="Forbidden", status=403)
 
         if file_path.exists() and file_path.is_file():
-            content_type = "text/css" if filename.endswith(".css") else "application/javascript"
-            with open(file_path, 'r', encoding='utf-8') as f:
-                return web.Response(text=f.read(), content_type=content_type)
+            ext = file_path.suffix.lower()
+            mime_map = {
+                ".html": "text/html",
+                ".htm": "text/html",
+                ".css": "text/css",
+                ".js": "application/javascript",
+                ".json": "application/json",
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".gif": "image/gif",
+                ".svg": "image/svg+xml",
+            }
+            content_type = mime_map.get(ext, "application/octet-stream")
+            with open(file_path, "rb") as f:
+                raw_data = f.read()
+
+            # Serve text files with appropriate encoding, binary files as-is
+            if ext in (".html", ".css", ".js", ".json"):
+                data_text = raw_data.decode("utf-8")
+                return web.Response(text=data_text, content_type=content_type)
+            else:
+                return web.Response(body=raw_data, content_type=content_type)
+        return web.Response(text="Not found", status=404)
+
+    async def favicon_handler(self, request: web.Request) -> web.Response:
+        """Serve favicon.ico at root path (/favicon.ico)."""
+        file_path = self._static_dir_resolved / "favicon.ico"
+        if file_path.exists() and file_path.is_file():
+            with open(file_path, "rb") as f:
+                raw_data = f.read()
+            return web.Response(body=raw_data, content_type="image/vnd.microsoft.icon")
         return web.Response(text="Not found", status=404)
