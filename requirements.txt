@@ -5,3 +5,4 @@ qrcode[pil]==8.2
 mss==10.2.0
 Pillow==12.3.0
 pyyaml==6.0.3
+PyQt6==6.11.0
