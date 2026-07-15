@@ -19,7 +19,7 @@ echo.
 echo ░█▀█░█▀█░█░█░█ ░ █░█░█░█▀▀░█▀▄░█▀▀░▀█▀░█▀█░█▀█░█░█░▀█▀
 echo ░█▀█░█░█░░█░░█▄▀▄█░█▀█░█▀▀░█▀▄░█▀▀░░█░░█░█░█▀▀░█░█░░█░
 echo ░▀░▀░▀░▀░░▀░░▀░ ░▀ ▀░▀░▀▀▀░▀░▀░▀▀▀░▀▀▀░▀░▀░▀░░░▀▀▀░░▀░.com
-echo   AnywhereInput v1.0.0 — Remote Control Your PC
+echo   AnywhereInput v1.2.7 - Remote Control Your PC
 echo         by AnywhereInput.com Github: @Z-Hussein
 echo.
 goto :eof
@@ -70,20 +70,18 @@ echo [1] Cloudflare Tunnel (Recommended - FREE, no account)
 echo [2] Tailscale (FREE, requires Tailscale account)
 echo [3] Pinggy.io (FREE, uses SSH, no install)
 echo [4] Zrok2 (FREE, open source, 5GB/day)
-echo [5] ngrok (Free tier, requires account)
-echo [6] Local only (Same WiFi, no tunnel)
+echo [5] Local only (Same WiFi, no tunnel)
 echo.
 echo [S] Setup / Repair
 echo [Q] Quit
 echo.
-set /p choice="Enter choice (1-6, S, Q): "
+set /p choice="Enter choice (1-5, S, Q): "
 
 if "%choice%"=="1" goto cloudflare
 if "%choice%"=="2" goto tailscale
 if "%choice%"=="3" goto pinggy
 if "%choice%"=="4" goto zrok2
-if "%choice%"=="5" goto ngrok
-if "%choice%"=="6" goto local
+if "%choice%"=="5" goto local
 if /I "%choice%"=="S" goto setup
 if /I "%choice%"=="Q" goto quit
 goto menu
@@ -125,17 +123,6 @@ goto end
 echo.
 echo [Zrok2] Starting tunnel...
 python -m anywhereinput.server --tunnel zrok2
-if %errorlevel% neq 0 (
-    echo.
-    echo [ERROR] Server failed to start (exit code: %errorlevel%)
-    echo.
-)
-goto end
-
-:ngrok
-echo.
-echo [ngrok] Starting tunnel...
-python -m anywhereinput.server --tunnel ngrok
 if %errorlevel% neq 0 (
     echo.
     echo [ERROR] Server failed to start (exit code: %errorlevel%)
