@@ -9,7 +9,7 @@ echo.
 echo ░█▀█░█▀█░█░█░█ ░ █░█░█░█▀▀░█▀▄░█▀▀░▀█▀░█▀█░█▀█░█░█░▀█▀
 echo ░█▀█░█░█░░█░░█▄▀▄█░█▀█░█▀▀░█▀▄░█▀▀░░█░░█░█░█▀▀░█░█░░█░
 echo ░▀░▀░▀░▀░░▀░░▀░ ░▀ ▀░▀░▀▀▀░▀░▀░▀▀▀░▀▀▀░▀░▀░▀░░░▀▀▀░░▀░.com
-echo   AnywhereInput v1.0.0 — Remote Control Your PC
+echo   AnywhereInput v1.2.7 - Remote Control Your PC
 echo.
 
 if exist ".venv\Scripts\activate.bat" call .venv\Scripts\activate.bat
