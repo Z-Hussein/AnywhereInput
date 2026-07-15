@@ -24,7 +24,7 @@ print_banner() {
     echo "░█▀█░█▀█░█░█░█ ░ █░█░█░█▀▀░█▀▄░█▀▀░▀█▀░█▀█░█▀█░█░█░▀█▀"
     echo "░█▀█░█░█░░█░░█▄▀▄█░█▀█░█▀▀░█▀▄░█▀▀░░█░░█░█░█▀▀░█░█░░█░"
     echo "░▀░▀░▀░▀░░▀░░▀░ ░▀ ▀░▀░▀▀▀░▀░▀░▀▀▀░▀▀▀░▀░▀░▀░░░▀▀▀░░▀░.com"
-    echo "  AnywhereInput v1.0.0 — Remote Control Your PC"
+    echo "  AnywhereInput v1.2.6 - Remote Control Your PC"
     echo "        by AnywhereInput.com Github: @Z-Hussein"
     echo -e "${NC}"
 }
@@ -32,12 +32,9 @@ print_banner() {
 
 # ── Kill only project-specific tunnel processes ──────────────────────────────
 kill_project_tunnels() {
-    # Only kill processes that match our specific port patterns, not all zrok/ngrok
+    # Only kill processes that match our specific port patterns, not all tunnel processes
     local port="${AI_PORT:-8008}"
     for pid in $(pgrep -f "zrok share.*localhost:${port}" 2>/dev/null || true); do
-        kill "$pid" 2>/dev/null || true
-    done
-    for pid in $(pgrep -f "ngrok http.*${port}" 2>/dev/null || true); do
         kill "$pid" 2>/dev/null || true
     done
     for pid in $(pgrep -f "cloudflared tunnel.*localhost:${port}" 2>/dev/null || true); do
@@ -105,19 +102,14 @@ check_zrok() {
     command -v zrok &>/dev/null || command -v zrok2 &>/dev/null
 }
 
-check_ngrok() {
-    command -v ngrok &>/dev/null
-}
-
 show_menu() {
     echo ""
-    local cf_ok ts_ok pg_ok zrok_ok ngrok_ok
+    local cf_ok ts_ok pg_ok zrok_ok
 
     cf_ok=$(check_cloudflare && echo -e "${GREEN}✓${NC}" || echo -e "${RED}✗${NC}")
     ts_ok=$(check_tailscale && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}?${NC}")
     pg_ok=$(check_pinggy && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}?${NC}")
     zrok_ok=$(check_zrok && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}?${NC}")
-    ngrok_ok=$(check_ngrok && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}?${NC}")
 
     echo -e "Select tunnel provider:"
     echo -e "  [1] Cloudflare Tunnel (Recommended) ${cf_ok}"
@@ -126,8 +118,7 @@ show_menu() {
     echo -e "  [3] Pinggy.io ${pg_ok}"
     echo -e "  ${CYAN}Uses your existing SSH client${NC}"
     echo -e "  [4] Zrok2 ${zrok_ok}"
-    echo -e "  [5] ngrok ${ngrok_ok}"
-    echo -e "  [6] Local only"
+    echo -e "  [5] Local only"
     echo -e "  [Q-q] Quit"
     echo ""
     read -p "Enter choice: " choice
@@ -137,8 +128,7 @@ show_menu() {
         2) $ANYWHEREINPUT_CMD --tunnel tailscale ;;
         3) $ANYWHEREINPUT_CMD --tunnel pinggy ;;
         4) $ANYWHEREINPUT_CMD --tunnel zrok2 ;;
-        5) $ANYWHEREINPUT_CMD --tunnel ngrok ;;
-        6) $ANYWHEREINPUT_CMD ;;
+        5) $ANYWHEREINPUT_CMD ;;
         q|Q) exit 0 ;;
         *) show_menu ;;
     esac
@@ -146,13 +136,13 @@ show_menu() {
 
 # ── TTY detection: auto-launch if no real terminal ───────────────────────
 if [ -t 0 ]; then
-    # Real terminal — show interactive menu
+    # Real terminal - show interactive menu
     print_banner
     show_menu
 else
-    # No TTY — auto-launch cloudflare tunnel
+    # No TTY - auto-launch cloudflare tunnel
     print_banner
-    echo -e "${CYAN}No terminal input available — starting Cloudflare Tunnel...${NC}"
+    echo -e "${CYAN}No terminal input available - starting Cloudflare Tunnel...${NC}"
     $ANYWHEREINPUT_CMD --tunnel cloudflare 2>&1
     exit $?
 fi
