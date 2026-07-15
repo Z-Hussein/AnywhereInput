@@ -1,15 +1,7 @@
 """Terminal QR code display for quick mobile access."""
 
-import qrcode
-
-# Lazy import for styled QR — will gracefully fail on headless/minimal installs
-_styled_imported = False
-try:
-    from qrcode.image.styledpil import StyledPilImage
-    from qrcode.image.styles.moduledrawers import RoundedModuleDrawer
-    _styled_imported = True
-except Exception:
-    pass
+import io as _io_mod
+from anywhereinput import safe_print, safe_print_stderr
 
 
 def display_qr(url: str, token: str) -> None:
@@ -18,42 +10,55 @@ def display_qr(url: str, token: str) -> None:
     The QR encodes the full client link with the token baked in,
     so scanning auto-fills both server and token fields.
     """
-    # Build the full client URL with ability to add token embedding
-    full_link = f"{url}/" # add ?token={token} after {url}/ to auto fill the token input
+    full_link = f"{url}/?token={token}"
     try:
-        qr = qrcode.QRCode(
+        qr = __import__("qrcode").QRCode(
             version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            error_correction=__import__("qrcode").constants.ERROR_CORRECT_H,
             box_size=1,
             border=1,
         )
         qr.add_data(full_link)
         qr.make(fit=True)
 
-        # Terminal ASCII output
-        print("\n" + "=" * 50)
-        print("📱 SCAN QR CODE TO CONNECT")
-        print("=" * 50)
-        qr.print_ascii(invert=True)
-        print("=" * 50)
-        print(f"🔗 URL: {full_link}")
-        print("=" * 50 + "\n")
+        # Render ASCII art to a string first, then pipe through safe_print.
+        # qrcode.print_ascii() writes directly to sys.stdout which bypasses
+        # safe_print and can crash on Windows OEM codepages.
+        ascii_buf = _io_mod.StringIO()
+        # Handle both old qrcode (<9) using `out=` and newer using `target=`.
+        import inspect
+
+        sig = inspect.signature(qr.print_ascii)
+        param_name = "target" if "target" in sig.parameters else "out"
+        qr.print_ascii(**{param_name: ascii_buf}, invert=True)
+        qr_text = ascii_buf.getvalue()
+
+        safe_print("\n" + "=" * 50)
+        safe_print("SCAN QR CODE TO CONNECT")
+        safe_print("=" * 50)
+        safe_print(qr_text)
+        safe_print("=" * 50)
+        safe_print(f"URL: {full_link}")
+        safe_print("=" * 50 + "\n")
     except Exception as e:
-        print(f"[QR] Could not display QR code: {e}")
-        print(f"🔗 URL: {full_link}")
+        safe_print_stderr(f"[QR] Could not display QR code: {e}")
+        safe_print(f"URL: {full_link}")
 
 
 def save_qr_image(url: str, filename: str = "qr_code.png") -> None:
     """Save QR code as image file."""
-    qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_H,
-        box_size=10,
-        border=4,
-    )
-    qr.add_data(url)
-    qr.make(fit=True)
+    try:
+        qr = __import__("qrcode").QRCode(
+            version=1,
+            error_correction=__import__("qrcode").constants.ERROR_CORRECT_H,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(url)
+        qr.make(fit=True)
 
-    img = qr.make_image() if not _styled_imported else qr.make_image(image_factory=StyledPilImage, module_drawer=RoundedModuleDrawer())
-    img.save(filename)
-    print(f"[QR] Saved to {filename}")
+        img = qr.make_image()
+        img.save(filename)
+        safe_print(f"[QR] Saved to {filename}")
+    except Exception as e:
+        safe_print_stderr(f"[QR] Could not save QR image: {e}")
