@@ -1,189 +1,191 @@
-# AnywhereInput
+<div align="center">
 
-**Control your Windows, Linux, or macOS PC from any browser.** No app install, no account, no cloud dependency.
+<!-- Animated Header -->
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:667eea,100:764ba2&height=200&section=header&text=AnywhereInput&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35" alt="AnywhereInput" />
 
-[AnywhereInput](https://www.anywhereinput.com) is a lightweight open-source remote control tool. Run a Python server on your PC and control it from any browser — no app or account needed. It supports mouse, keyboard, scrolling, real-time screen capture, and zero-config tunnel support with **5 providers** plus a local-only mode.
+<h3 align="center">🖱️ Control Your PC From Any Browser - No Install, No Account, No Cloud</h3>
+
+<p align="center">
+  <a href="https://www.anywhereinput.com">🌐 Website</a> •
+  <a href="#-quick-start">🚀 Quick Start</a> •
+  <a href="#-features">✨ Features</a> •
+  <a href="#-how-it-works">⚙️ How It Works</a> •
+  <a href="#-tunnel-providers">🔒 Tunnels</a>
+</p>
+
+<!-- Badges -->
+<p align="center">
+  <a href="https://pypi.org/project/anywhereinput/">
+    <img src="https://img.shields.io/pypi/v/anywhereinput?style=for-the-badge&logo=pypi&logoColor=white&color=blue" alt="PyPI Version" />
+  </a>
+  <a href="https://pypi.org/project/anywhereinput/">
+    <img src="https://img.shields.io/pypi/pyversions/anywhereinput?style=for-the-badge&logo=python&logoColor=white&color=3776AB" alt="Python Versions" />
+  </a>
+  <a href="https://github.com/yourusername/anywhereinput/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge&logo=open-source-initiative&logoColor=white" alt="License: MIT" />
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-4B0082?style=for-the-badge&logo=windows-terminal&logoColor=white" alt="Platforms" />
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/Stars-%E2%AD%90%20Star%20Us-yellow?style=for-the-badge&logo=github&logoColor=white" alt="Star Us" />
+  </a>
+</p>
+
+<!-- Animated Typing -->
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=3000&pause=1000&color=667EEA&center=true&vCenter=true&width=600&lines=Mouse+%E2%86%92+Browser;Keyboard+%E2%86%92+Browser;Screen+%E2%86%92+Browser;Your+PC+%E2%86%92+Anywhere" alt="Typing SVG" />
+
+</div>
 
 ---
 
-## Why AnywhereInput?
+## 🎯 The Problem
 
-Every remote control tool forces you through friction:
+Every remote control tool forces you through **friction**:
 
-| Tool | Friction |
-|---|---|
-| TeamViewer / Chrome Remote Desktop | Account creation, bloated client, corporate telemetry |
-| VNC / RDP | Port forwarding, firewall rules, VPN setup |
-| Dedicated apps | App store, permissions, updates |
+| Tool | What's Wrong |
+|------|-------------|
+| TeamViewer / Chrome Remote Desktop | 😤 Account creation, bloated client, corporate telemetry |
+| VNC / RDP | 🔧 Port forwarding, firewall rules, VPN setup |
+| Dedicated Apps | 📱 App store, permissions, updates, storage |
 
-**AnywhereInput does none of that.** Open a browser, paste a link, control your PC. The server is yours. The connection is direct. The client is the web.
+**AnywhereInput does none of that.**
+
+Open a browser → paste a link → control your PC. That's it.
+
+> *"The server is yours. The connection is direct. The client is the web."*
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
-### Windows (Recommended)
+### ⚡ One-Liner (Recommended)
+```bash
+pip install anywhereinput
+anywhereinput --tunnel cloudflare
+```
+
+### 🪟 Windows
 ```batch
 scripts\windows\setup.bat
 scripts\windows\run.bat
 ```
 
-### Linux / macOS
+### 🐧 Linux / 🍎 macOS
 ```bash
 chmod +x scripts/unix/setup.sh scripts/unix/run.sh
 ./scripts/unix/setup.sh
 ./scripts/unix/run.sh
 ```
 
-### pip — install from PyPI (any platform)
+### 🖥️ Desktop GUI (No Terminal Needed)
 ```bash
-pip install anywhereinput
-anywhereinput
-anywhereinput --tunnel cloudflare
-anywhereinput --tunnel local
-anywhereinput --help-tunnels
+pip install anywhereinput[app]
+anywhereinput --app
 ```
 
-### Ubuntu (recommended): pipx install from PyPI
-```bash
-sudo apt update
-sudo apt install -y pipx
-pipx ensurepath
-
-# Open a new terminal, then install and run
-pipx install anywhereinput
-anywhereinput --tunnel cloudflare
-```
-
-
-
-> Package on PyPI: https://pypi.org/project/anywhereinput/
+> 💡 **Ubuntu?** Use `pipx` for isolated installs: `pipx install anywhereinput`
 
 ---
 
-## Important Notes
+## ✨ Features at a Glance
 
-- See docs/IMPORTANT.md for critical security, tunnel, and troubleshooting notes.
-- See IMPORTANT.md in the repository root for quick operator guidance before first run.
-- Client monitor selection supports all detected displays from the monitor dropdown (including Auto mode).
+<div align="center">
 
----
+| 🖱️ **Control** | 📺 **Stream** | 🔒 **Security** | ⚡ **Performance** |
+|---|---|---|---|
+| Move, click, scroll | Real-time JPEG screen | Per-token permissions | Up to 120 Hz updates |
+| Keyboard & hotkeys | Multi-monitor support | IP allowlists/blocklists | Configurable FPS |
+| Touchpad gestures | Screen overlay click | Auto-rotating tokens | JPEG quality control |
+| Two-finger scroll | Live recovery status | HTTPS/WSS encryption | Bandwidth scaling |
+| **Tap-to-click on stream** | | **Kick + block clients** | **IP block/deny lists** |
 
-## Tunnel Providers
+</div>
 
-| Provider | Cost | Account | Setup | Notes |
-|---|---|---|---|---|
-| **[Cloudflare](https://www.cloudflare.com/) Tunnel** | Free | ❌ No | Auto-downloaded | Fastest globally, random URL per session |
-| **Tailscale** | Free | ✅ Yes (free) | Install + log in once | Peer-to-peer via tailnet IP — both devices on same tailnet |
-| **[Pinggy.io](https://pinggy.io/)** | Free | ❌ No | Uses SSH client | 60 min session timeout, works behind firewalls |
-| **[Zrok2](https://docs.zrok.io/)** | Free (5 GB/day) | ✅ Yes | Manual install | Open source, zero-trust architecture |
-| **[ngrok](https://ngrok.com/)** | Free tier | ✅ Yes | Download + config | Reliable, large ecosystem, session limits on free |
-
-Local-only mode is also available via `--tunnel local` (no tunnel process, same WiFi/LAN).
-
----
-
-## Features at a Glance
-
-### Control
-- **Mouse** — Move, click (left/right), double-click, scroll
-- **Keyboard** — Single keys, hotkey combos (Ctrl+C, Ctrl+Alt+Del, etc.)
-- **Screen Capture** — Real-time JPEG stream from server to browser
-- **Screen Overlay Click** — Tap anywhere on the live screen to move cursor there
-- **Touchpad Gestures** — Two-finger scroll, long-press right click, tap-to-click
-
-### Settings
-- Adjustable mouse sensitivity (0.3x – 3.0x)
-- FPS counter overlay
-- Stream quality & scale control
-- Screen capture toggle
-- Live engine recovery status banner during capture interruptions
-
-### Performance
-- ~60 Hz mouse updates
-- Configurable screen stream FPS (1–120), JPEG quality (1–95), scale (0.1–1.0)
-- Multi-monitor support with auto cursor tracking across monitors
-
----
-
-## Architecture
-
-```
-┌─────────────────+─────────────────────────────────┐
-│                 │                                 │
-│  Your Device    │      Your PC                    │
-│  (Any Browser)  │      (Python Server)            │
-│                 │         - aiohttp HTTP/WS        │
-│  Screen Stream  ├──────►|  - MSS/PIL capture       │
-│  <─────────────+------►|  - pyautogui input       │
-│                 │         └─────────────────────────┘
-└─────────────────+─────────────────────────────────┘
-                    │
-                    ▼
-          +─────────────────+
-          │ Tunnel Provider │ (Optional, for remote)
-          │ Cloudflare /    │
-          │ Tailscale /     │
-          │ Pinggy /        │
-          │ Zrok2 / ngrok   │
-          └─────────────────+
-```
-
----
-
-## CLI Options
-
-| Flag | Default | Description |
-|---|---|---|
-| `--host HOST` | `127.0.0.1` | Server host bind address |
-| `--port PORT` | `8008` | Server port |
-| `--fps FPS` | `120` | Screen capture FPS (1–120) |
-| `--quality Q` | `85` | JPEG quality (1–95) |
-| `--scale F` | `1.0` | Screen scale factor (0.1–1.0) |
-| `--no-capture` | — | Disable screen capture entirely |
-| `--monitor N` | `0` | Monitor to capture (0=auto, 1+=fixed) |
-| `--tunnel P` | interactive menu | Tunnel provider: `cloudflare`, `tailscale`, `pinggy`, `zrok2`, `ngrok`, `local` |
-| `--help-tunnels` | — | Show tunnel provider quick help and exit |
-| `--version` | — | Show installed version and exit |
-
-Example:
-```bash
-anywhereinput --fps 15 --quality 75 --scale 0.7 --tunnel cloudflare
-```
-
----
-
-## How It Works
-
-1. Run the server on your PC (`anywhereinput`, `run.sh`, or `run.bat`)
-2. Select your tunnel provider from the menu
-3. Open a browser on any device (phone, tablet, laptop)
-4. Paste the URL displayed in the terminal
-5. Enter the access token and tap **Connect**
-6. Use the touchpad to control your PC, or tap the screen stream to move the cursor
-
----
-
-## Client Controls
+### 🎮 Client Controls
 
 | Action | How |
-|---|---|
-| Move cursor | Drag on the touchpad area |
-| Left click | Tap touchpad or tap Left Click button |
-| Right click | Long-press touchpad (600ms) or Right Click button |
-| Double click | Double Click button |
-| Scroll | Two-finger drag, or Scroll Up/Down buttons |
-| Keyboard | Tap Keyboard, type text, send |
-| Hotkeys | Pre-mapped: Ctrl+A through Ctrl+F, Ctrl+Alt+Del |
-| Center mouse | Tap Center button |
-| Screen overlay click | Tap anywhere on the live screen stream |
+|--------|-----|
+| **Move cursor** | Drag on touchpad area |
+| **Left click** | Tap touchpad or Left Click button |
+| **Right click** | Long-press touchpad (600ms) or Right Click button |
+| **Double click** | Double Click button |
+| **Scroll** | Two-finger drag, or Scroll Up/Down buttons |
+| **Keyboard** | Tap Keyboard → type → send |
+| **Hotkeys** | Ctrl+A–F, Ctrl+Alt+Del, and more |
+| **Screen click** | Tap anywhere on the live screen stream |
+
+### Fullscreen (Watch Mode) Controls
+
+In fullscreen mode the touchpad is hidden and the entire screen image acts as the touchpad. Swipe moves the cursor - behaves exactly like a plugged mouse.
+
+| Action | How |
+|--------|-----|
+| **Move cursor** | Swipe anywhere on the stream |
+| **Left click** | Tap the stream |
+| **Right click** | Long-press (600ms) on the stream |
+| **Scroll** | Two-finger drag on the stream |
+| **Keyboard** | ⌨️ button always visible in bottom-right |
+
+### Touch / Mobile Controls (Screen Stream)
+
+The live screen stream supports touch gestures for mobile/tablet clients:
+
+| Gesture | Action |
+|---------|--------|
+| **Single tap** | Move mouse to tap position |
+| **Double tap** (same spot, <500ms) | Left-click at that position |
+| **Drag** | Move mouse (relative) |
+| **Long press** (600ms) | Right-click |
+| **Two-finger drag** | Scroll |
+| **Two-finger pinch** | Scroll (alternative) |
 
 ---
 
-## WebSocket API
+## 🔒 Tunnel Providers
+
+Choose your path. No vendor lock-in.
+
+| Provider | Cost | Account | Setup | Best For |
+|----------|------|---------|-------|----------|
+| **[Cloudflare](https://www.cloudflare.com/)** | 🆓 Free | ❌ No | Auto-download | 🌍 Global access, random URL/session |
+| **[Tailscale](https://tailscale.com/)** | 🆓 Free | ✅ Yes (free) | Install once | 🏠 Peer-to-peer, same tailnet |
+| **[Pinggy.io](https://pinggy.io/)** | 🆓 Free | ❌ No | SSH client | 🔥 Works behind strict firewalls |
+| **[Zrok2](https://docs.zrok.io/)** | 🆓 Free (5GB/day) | ✅ Yes | Manual install | 🛡️ Open source, zero-trust |
+| **Local only** | 🆓 Free | ❌ No | None | 📡 Same WiFi/LAN |
+
+---
+
+## ⚙️ How It Works
+
+```
+┌─────────────────┐      ┌─────────────────────────────┐
+│  Your Device    │      │      Your PC                │
+│  (Any Browser)  │◄────►│  Python Server              │
+│                 │  WS  │  ├─ aiohttp HTTP/WebSocket  │
+│  Screen Stream  │◄────►│  ├─ MSS/PIL capture         │
+│  <──────────────┘      │  └─ pyautogui input         │
+└─────────────────┘      └─────────────────────────────┘
+           │
+           ▼
+  ┌─────────────────────────────────────────────┐
+  │ Tunnel Provider  ← Optional                 │
+  │  (Cloudflare / Tailscale / Pinggy / Zrok2)  │
+  └─────────────────────────────────────────────┘
+```
+
+1. **Run** the server on your PC
+2. **Select** tunnel provider (or stay local)
+3. **Open** browser on any device
+4. **Paste** the URL
+5. **Enter** access token → **Connect**
+6. **Control** your PC from anywhere
+
+---
+
+## 📡 WebSocket API
 
 ### Authentication
-Connect to `/ws` and send:
 ```json
 {"type": "auth", "token": "***"}
 ```
@@ -197,505 +199,169 @@ Connect to `/ws` and send:
 {"type": "key", "key": "enter"}
 {"type": "hotkey", "keys": ["ctrl", "c"]}
 {"type": "screen_toggle", "enabled": true}
-{"type": "ping"}
 ```
 
 ### Server Events
 ```json
 {"type": "screen", "data": "<base64-jpeg>"}
-{"type": "screen_status", "status": "rebuilding", "message": "Reconnecting to display..."}
-{"error": "capture_error", "message": "Input engine is recovering.", "recovering": true}
-{"error": "capture_engine_offline", "message": "Input engine is offline. Retry shortly."}
+{"type": "screen_status", "status": "rebuilding", "message": "Reconnecting..."}
+{"error": "capture_error", "message": "Input engine recovering.", "recovering": true}
 ```
 
 ### HTTP Endpoints
 | Endpoint | Description |
-|---|---|
-| `GET /api/screen` | Returns screen dimensions |
-| `GET /api/engine` | Returns input engine health plus `screen_engine` state |
-| `GET /api/monitors` | Returns all monitor info + current selection |
+|----------|-------------|
+| `GET /api/screen` | Screen dimensions |
+| `GET /api/engine` | Input engine health |
+| `GET /api/monitors` | All monitors + current selection |
 | `POST /api/monitor/{index}` | Switch capture monitor |
+| `GET /api/tokens` | List tokens (masked) |
+| `POST /api/tokens` | Create token with permissions |
+| `PATCH /api/tokens/{token}` | Update token |
+| `DELETE /api/tokens/{token}` | Revoke token |
+| `GET /api/clients` | Connected WebSocket clients |
+| `POST /api/clients/{client_id}/kick` | Kick client + add IP to block list |
 
 ---
 
-## Access Methods
+## 🛠️ CLI Options
 
-### Local Network (same WiFi)
-No tunnel needed. Just open your browser and navigate to:
-```
-http://<your-pc-ip>:8008
-```
-
-### Remote Access
-Use any supported tunnel provider above for secure remote access from anywhere.
-
----
-
-## Security
-
-> ⚠️ Designed for personal/trusted use. Not hardened for production.
-
-- ✅ Auto-generated 32-char token on each server start
-- ✅ Token rotation via **Ctrl+N** or `n` + Enter
-- ✅ HTTPS/WSS encryption when using any tunnel provider
-- ✅ No data stored on external servers
-- ❌ Single token per session
-- ❌ No rate limiting
-- ❌ No IP whitelist
-- ❌ No logging/monitoring
-
-For enterprise-grade security, add a reverse proxy with OAuth or mTLS.
-
----
-
-## System Requirements
-
-| Component | Minimum |
-|---|---|
-| Server OS | Windows 10/11, Linux, macOS |
-| Python | 3.9+ |
-| Client | Any browser with WebSocket + Pointer Events + Touch Events |
-| Internet | Required on both devices for remote access |
-
-## Dependencies
-
-Runtime dependencies are pinned to exact versions in pyproject.toml for reproducible installs.
-
-```
-pyautogui==0.9.54
-aiohttp==3.13.4
-requests==2.32.5
-qrcode[pil]==8.2
-mss==10.1.0
-Pillow==11.3.0
-pyyaml==6.0.2
-```
-
-## Packaging note
-
-If new dependencies are required, add them to `pyproject.toml` (this project does not use a runtime `requirements.txt` workflow).
-
-Potential optional dependencies (defer until needed):
-```
-pydirectinput==1.0.4  # Optional, for DirectInput fallback
-pywin32==312; platform_system=="Windows"  # For Windows session APIs
-```
-
----
-
-## Troubleshooting
-
-| Problem | Fix |
-|---|---|
-| Tunnel URL not showing | Check internet; verify provider status; try another provider |
-| Can't connect from device | Check firewall allows port 8008; test `http://localhost:8008` on PC first |
-| Connection timeout | Verify both devices have internet; check tunnel provider status |
-| Mouse moving too slow / lag | Check network latency; reduce drag distance; try local network |
-| Screen capture shows black cursor | Install `mss`; on Linux, ensure X11 display is accessible |
-| Screen stream is blank | Check server logs; try `--no-capture`; ensure Pillow is installed |
-| Keyboard double-typing | Client uses 50ms debounce; check mobile keyboard autocorrect |
-| Zrok2 "not enabled" error | Run `zrok2 enable <TOKEN>` or use `zrok2_repair.py` |
-| Cloudflared not found | Auto-downloads on first run; if fails, install manually: `winget install --id Cloudflare.cloudflared` (Windows) or `brew install cloudflared` (macOS) |
-| Python not found | Install Python 3.9+ from [python.org](https://python.org), ensure it's on PATH |
-
----
-
-## Getting Started Guide
-
-### Cloudflare Tunnel
-1. Run `run.bat` / `./run.sh` and select **Cloudflare Tunnel**
-2. The launcher auto-downloads cloudflared if not found
-3. Wait 10–20 seconds for the tunnel to establish
-4. Copy the URL (`https://xxx.trycloudflare.com`)
-
-### Tailscale
-1. Install [Tailscale](https://tailscale.com/download) on both PC and device
-2. Log in to the same account on both devices
-3. Run `run.bat` / `./run.sh` and select **Tailscale**
-4. Your PC displays its Tailnet IP — connect from any other tailnet device
-
-### Pinggy.io
-1. Ensure you have an SSH client installed:
-   - Windows: Enable OpenSSH Client in Settings > Apps > Optional Features
-   - Linux: `sudo apt-get install openssh-client`
-   - macOS: Built-in
-2. Run `run.bat` / `./run.sh` and select **Pinggy**
-3. If prompted for a password, press ENTER (blank password)
-4. Copy the URL (`https://xxx.a.free.pinggy.link`)
-
-### Zrok2
-1. Download zrok from [github.com/openziti/zrok/releases](https://github.com/openziti/zrok/releases)
-2. Run `zrok invite` to create an account (one-time)
-3. Run `zrok2 enable <TOKEN>` (get token from [zrok.io dashboard](https://docs.zrok.io))
-4. Run `run.bat` / `./run.sh` and select **Zrok2**
-
-### ngrok
-1. Download ngrok from [ngrok.com/download](https://ngrok.com/download)
-2. Sign up at [dashboard.ngrok.com/signup](https://dashboard.ngrok.com/signup)
-3. Get your auth token from [your authtoken page](https://dashboard.ngrok.com/get-started/your-authtoken)
-4. Run `run.bat` / `./run.sh` and select **ngrok**
-
----
-
-## Roadmap
-
-- ✅ Unified tunnel launcher (5 providers)
-- ✅ Tailscale peer-to-peer support
-- ✅ Auto-download cloudflared binary on all platforms
-- ✅ Zrok2 environment check and auto-enable
-- ✅ Pinggy SSH tunnel with URL parsing
-- ✅ Terminal QR code generation
-- ❌ Android/iOS companion app
-- ❌ Video streaming mode
-- ❌ File transfer over tunnel
-- ❌ Enterprise SSO integration
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
-
----
-
-## License
-
-MIT License — See [LICENSE](LICENSE)
-# AnywhereInput
-
-**Control your Windows, Linux, or macOS PC from any browser.** No app install, no account, no cloud dependency.
-
-[AnywhereInput](https://www.anywhereinput.com) is a lightweight open-source remote control tool. Run a Python server on your PC and control it from any browser — no app or account needed. It supports mouse, keyboard, scrolling, real-time screen capture, and minimal-config tunnel support with **5 providers**.
-
----
-
-## Why AnywhereInput?
-
-Every remote control tool forces you through friction:
-
-| Tool | Friction |
-|---|---|
-| TeamViewer / Chrome Remote Desktop | Account creation, bloated client, corporate telemetry |
-| VNC / RDP | Port forwarding, firewall rules, VPN setup |
-| Dedicated apps | App store, permissions, updates |
-
-**AnywhereInput does none of that.** Open a browser, paste a link, control your PC. The server is yours. The connection is direct. The client is the web.
-
----
-
-## Quick Start
-
-### Windows (Recommended)
-```batch
-scripts\windows\setup.bat
-scripts\windows\run.bat
-```
-
-### Linux / macOS
 ```bash
-chmod +x scripts/unix/setup.sh scripts/unix/run.sh
-./scripts/unix/setup.sh
-./scripts/unix/run.sh
+anywhereinput [OPTIONS]
 ```
-
-### pip — install from PyPI (any platform)
-```bash
-pip install anywhereinput
-anywhereinput --tunnel [cloudflare,tailscale,pinggy,zrok2,ngrok]
-anywhereinput --help
-```
-
-### Ubuntu (recommended): pipx install from PyPI
-```bash
-sudo apt update
-sudo apt install -y pipx
-pipx ensurepath
-
-# Open a new terminal, then install and run
-pipx install anywhereinput
-anywhereinput --tunnel cloudflare
-```
-
-
-
-> Package on PyPI: https://pypi.org/project/anywhereinput/
-
----
-
-## Important Notes
-
-- See docs/IMPORTANT.md for critical security, tunnel, and troubleshooting notes.
-- See IMPORTANT.md in the repository root for quick operator guidance before first run.
-- Client monitor selection supports all detected displays from the monitor dropdown (including Auto mode).
-
----
-
-## Tunnel Providers
-
-| Provider | Cost | Account | Setup | Notes |
-|---|---|---|---|---|
-| **[Cloudflare](https://www.cloudflare.com/) Tunnel** | Free | ❌ No | Auto-downloaded | Fastest globally, random URL per session |
-| **Tailscale** | Free | ✅ Yes (free) | Install + log in once | Peer-to-peer via tailnet IP — both devices on same tailnet |
-| **[Pinggy.io](https://pinggy.io/)** | Free | ❌ No | Uses SSH client | 60 min session timeout, works behind firewalls |
-| **[Zrok2](https://docs.zrok.io/)** | Free (5 GB/day) | ✅ Yes | Manual install | Open source, zero-trust architecture |
-| **[ngrok](https://ngrok.com/)** | Free tier | ✅ Yes | Download + config | Reliable, large ecosystem, session limits on free |
-
----
-
-## Features at a Glance
-
-### Control
-- **Mouse** — Move, click (left/right), double-click, scroll
-- **Keyboard** — Single keys, hotkey combos (Ctrl+C, Ctrl+Alt+Del, etc.)
-- **Screen Capture** — Real-time JPEG stream from server to browser
-- **Screen Overlay Click** — Tap anywhere on the live screen to move cursor there
-- **Touchpad Gestures** — Two-finger scroll, long-press right click, tap-to-click
-
-### Settings
-- Adjustable mouse sensitivity (0.3x – 3.0x)
-- FPS counter overlay
-- Stream quality & scale control
-- Screen capture toggle
-
-### Performance
-- ~60 Hz mouse updates
-- Configurable screen stream FPS (1–30), JPEG quality (1–95), scale (0.1–1.0)
-- Multi-monitor support with auto cursor tracking across monitors
-
----
-
-## Architecture
-
-```
-┌─────────────────+─────────────────────────────────┐
-│                 │                                 │
-│  Your Device    │      Your PC                    │
-│  (Any Browser)  │      (Python Server)            │
-│                 │         - aiohttp HTTP/WS        │
-│  Screen Stream  ├──────►|  - MSS/PIL capture       │
-│  <─────────────+------►|  - pyautogui input       │
-│                 │         └─────────────────────────┘
-└─────────────────+─────────────────────────────────┘
-                    │
-                    ▼
-          +─────────────────+
-          │ Tunnel Provider │ (Optional, for remote)
-          │ Cloudflare /    │
-          │ Tailscale /     │
-          │ Pinggy /        │
-          │ Zrok2 / ngrok   │
-          └─────────────────+
-```
-
----
-
-## CLI Options
 
 | Flag | Default | Description |
-|---|---|---|
-| `--host HOST` | `127.0.0.1` | Server host bind address |
+|------|---------|-------------|
+| `--host HOST` | `127.0.0.1` | Server bind address |
 | `--port PORT` | `8008` | Server port |
-| `--fps FPS` | `10` | Screen capture FPS (1–30) |
-| `--quality Q` | `60` | JPEG quality (1–95) |
-| `--scale F` | `0.5` | Screen scale factor (0.1–1.0) |
-| `--no-capture` | — | Disable screen capture entirely |
-| `--monitor N` | `0` | Monitor to capture (0=auto, 1+=fixed) |
-| `--tunnel P` | — | Tunnel provider: `cloudflare`, `tailscale`, `pinggy`, `zrok2`, `ngrok` |
+| `--fps FPS` | `120` | Screen capture FPS (1–120) |
+| `--quality Q` | `40` | JPEG quality (1–95). Lower = faster encode/decode but blurrier. Default 40 is optimal for remote control. |
+| `--scale F` | `0.7` | Scale factor for capture (0.1–1.0). Lower = smaller image = much less data to transmit. 0.5 = half resolution. |
+| `--no-capture` | - | Disable screen capture |
+| `--monitor N` | `0` | Monitor (0=auto, 1+=fixed) |
+| `--tunnel P` | interactive | Provider: `cloudflare`, `tailscale`, `pinggy`, `zrok2`, `local` |
+| `--help-tunnels` | - | Show tunnel help |
+| `--version` | - | Show version |
 
-Example:
+**Example:**
 ```bash
-anywhereinput --fps 15 --quality 75 --scale 0.7 --tunnel cloudflare
+anywhereinput --fps 120 --quality 40 --scale 0.7 --tunnel cloudflare
 ```
 
 ---
 
-## How It Works
+## 🛡️ Security
 
-1. Run the server on your PC (`run.sh` or `run.bat`)
-2. Select your tunnel provider from the menu
-3. Open a browser on any device (phone, tablet, laptop)
-4. Paste the URL displayed in the terminal
-5. Enter the access token and tap **Connect**
-6. Use the touchpad to control your PC, or tap the screen stream to move the cursor
+> ⚠️ **Designed for personal/trusted use. Not hardened for production.**
 
----
+- ✅ **Auto-generated** 32-char token on each start
+- ✅ **Per-token** input permissions (`move`, `click`, `scroll`, `keyboard`, `screen_toggle`, `ping`)
+- ✅ **IP allowlist** per token (CIDR + single-host)
+- ✅ **IP block/deny list** - global + per-token (CIDR + single-host)
+- ✅ **Kick + block clients** from admin UI - disconnects client and adds their IP to token's block list
+- ✅ **Blocked IPs management** - view and unblock kicked IPs per token in the admin app token editor
+- ✅ **Token rotation** via `n` + Enter or Ctrl+N
+- ✅ **HTTPS/WSS** encryption via tunnel providers
+- ✅ **Zero external data storage**
+- ⚠️ Single active token per session - rotation invalidates all previous
+- ❌ No rate limiting (add reverse proxy for production)
+- ❌ No audit logging
 
-## Client Controls
-
-| Action | How |
-|---|---|
-| Move cursor | Drag on the touchpad area |
-| Left click | Tap touchpad or tap Left Click button |
-| Right click | Long-press touchpad (600ms) or Right Click button |
-| Double click | Double Click button |
-| Scroll | Two-finger drag, or Scroll Up/Down buttons |
-| Keyboard | Tap Keyboard, type text, send |
-| Hotkeys | Pre-mapped: Ctrl+A through Ctrl+F, Ctrl+Alt+Del |
-| Center mouse | Tap Center button |
-| Screen overlay click | Tap anywhere on the live screen stream |
+For enterprise-grade security, add a reverse proxy with **OAuth** or **mTLS**.
 
 ---
 
-## WebSocket API
-
-### Authentication
-Connect to `/ws` and send:
-```json
-{"type": "auth", "token": "***"}
-```
-
-### Commands
-```json
-{"type": "move", "mode": "relative", "dx": 10, "dy": 15}
-{"type": "move", "mode": "absolute", "dx": 0.5, "dy": 0.5}
-{"type": "click", "button": "left", "clicks": 1}
-{"type": "scroll", "amount": 15}
-{"type": "key", "key": "enter"}
-{"type": "hotkey", "keys": ["ctrl", "c"]}
-{"type": "screen_toggle", "enabled": true}
-{"type": "ping"}
-```
-
-### HTTP Endpoints
-| Endpoint | Description |
-|---|---|
-| `GET /api/screen` | Returns screen dimensions |
-| `GET /api/monitors` | Returns all monitor info + current selection |
-| `POST /api/monitor/{index}` | Switch capture monitor |
-| `GET /api/token` | Returns the current active token |
-
----
-
-## Access Methods
-
-### Local Network (same WiFi)
-No tunnel needed. Just open your browser and navigate to:
-```
-http://<your-pc-ip>:8008
-```
-
-### Remote Access
-Use any supported tunnel provider above for secure remote access from anywhere.
-
----
-
-## Security
-
-> ⚠️ Designed for personal/trusted use. Not hardened for production.
-
-- ✅ Auto-generated 32-char token on each server start
-- ✅ Token rotation via **Ctrl+N** or `n` + Enter
-- ✅ HTTPS/WSS encryption when using any tunnel provider
-- ✅ No data stored on external servers
-- ❌ Single token per session
-- ❌ No rate limiting
-- ❌ No IP whitelist
-- ❌ No logging/monitoring
-
-For enterprise-grade security, add a reverse proxy with OAuth or mTLS.
-
----
-
-## System Requirements
+## 📦 System Requirements
 
 | Component | Minimum |
-|---|---|
-| Server OS | Windows 10/11, Linux, macOS |
-| Python | 3.9+ |
-| Client | Any browser with WebSocket + Pointer Events + Touch Events |
-| Internet | Required on both devices for remote access |
+|-----------|---------|
+| **Server OS** | Windows 10/11, Linux, macOS |
+| **Python** | 3.9+ |
+| **Client** | Any browser with WebSocket + Pointer/Touch Events |
+| **Internet** | Required on both devices for remote access |
 
-## Dependencies
-
-```
-pyautogui>=0.9.54
-aiohttp>=3.8.0
-requests>=2.28.0
-pyotp>=2.8.0
-qrcode[pil]>=0.12.0
-mss>=9.0.0
-Pillow>=9.0.0
-pyyaml>=6.0
-click>=8.0
+### Dependencies
+```toml
+pyautogui==0.9.54
+aiohttp==3.14.1
+requests==2.34.2
+qrcode[pil]==8.2
+mss==10.2.0
+Pillow==12.3.0
+pyyaml==6.0.3
+PyQt6==6.11.0
 ```
 
 ---
 
-## Troubleshooting
+## 🧰 Troubleshooting
 
 | Problem | Fix |
-|---|---|
-| Tunnel URL not showing | Check internet; verify provider status; try another provider |
-| Can't connect from device | Check firewall allows port 8008; test `http://localhost:8008` on PC first |
-| Connection timeout | Verify both devices have internet; check tunnel provider status |
-| Mouse moving too slow / lag | Check network latency; reduce drag distance; try local network |
-| Screen capture shows black cursor | Install `mss`; on Linux, ensure X11 display is accessible |
-| Screen stream is blank | Check server logs; try `--no-capture`; ensure Pillow is installed |
-| Keyboard double-typing | Client uses 50ms debounce; check mobile keyboard autocorrect |
-| Zrok2 "not enabled" error | Run `zrok2 enable <TOKEN>` or use `zrok2_repair.py` |
-| Cloudflared not found | Auto-downloads on first run; if fails, install manually: `winget install --id Cloudflare.cloudflared` (Windows) or `brew install cloudflared` (macOS) |
-| Python not found | Install Python 3.9+ from [python.org](https://python.org), ensure it's on PATH |
+|---------|-----|
+| Tunnel URL not showing | Check internet; try another provider |
+| Can't connect from device | Check firewall (port 8008); test `localhost:8008` first |
+| Connection timeout | Verify both devices online; check tunnel status |
+| Mouse lag | Reduce drag distance; try local network |
+| Black cursor on capture | Install `mss`; ensure X11 accessible on Linux |
+| Blank screen stream | Check server logs; try `--no-capture`; verify Pillow |
+| Keyboard double-typing | 50ms debounce active; check autocorrect |
+| Zrok2 "not enabled" | Run `zrok2 enable <TOKEN>` or use `zrok2_repair.py` |
+| Cloudflared missing | Auto-downloads on first run; or install manually |
+| Python not found | Install 3.9+ from [python.org](https://python.org) |
 
 ---
 
-## Getting Started Guide
+## 🗺️ Roadmap
 
-### Cloudflare Tunnel
-1. Run `run.bat` / `./run.sh` and select **Cloudflare Tunnel**
-2. The launcher auto-downloads cloudflared if not found
-3. Wait 10–20 seconds for the tunnel to establish
-4. Copy the URL (`https://xxx.trycloudflare.com`)
+### ✅ Completed (v1.2.7)
+- [x] Blocked IPs management in admin app - view/unblock kicked clients per token
+- [x] Auto token cleanup on shutdown - fresh session every start
+- [x] IPv6 address extraction fix for block list matching
+- [x] Duplicate `/api/clients` route removed (was returning WebSocket repr)
+- [x] Unified tunnel launcher (4 providers)
+- [x] Tailscale peer-to-peer support
+- [x] Auto-download cloudflared
+- [x] Zrok2 environment check & auto-enable
+- [x] Pinggy SSH tunnel with URL parsing
+- [x] Terminal QR code generation
+- [x] Desktop admin app (`--app`) with token management
+- [x] Per-token input permissions & IP allowlists
+- [x] Connection Request flow (client approval)
+- [x] Direct-mouse cursor tracking in both normal and fullscreen modes
+- [x] Always-visible keyboard button in fullscreen mode
+- [x] Multi-token session support (with permissions settings)
 
-### Tailscale
-1. Install [Tailscale](https://tailscale.com/download) on both PC and device
-2. Log in to the same account on both devices
-3. Run `run.bat` / `./run.sh` and select **Tailscale**
-4. Your PC displays its Tailnet IP — connect from any other tailnet device
-
-### Pinggy.io
-1. Ensure you have an SSH client installed:
-   - Windows: Enable OpenSSH Client in Settings > Apps > Optional Features
-   - Linux: `sudo apt-get install openssh-client`
-   - macOS: Built-in
-2. Run `run.bat` / `./run.sh` and select **Pinggy**
-3. If prompted for a password, press ENTER (blank password)
-4. Copy the URL (`https://xxx.a.free.pinggy.link`)
-
-### Zrok2
-1. Download zrok from [github.com/openziti/zrok/releases](https://github.com/openziti/zrok/releases)
-2. Run `zrok invite` to create an account (one-time)
-3. Run `zrok2 enable <TOKEN>` (get token from [zrok.io dashboard](https://docs.zrok.io))
-4. Run `run.bat` / `./run.sh` and select **Zrok2**
-
-### ngrok
-1. Download ngrok from [ngrok.com/download](https://ngrok.com/download)
-2. Sign up at [dashboard.ngrok.com/signup](https://dashboard.ngrok.com/signup)
-3. Get your auth token from [your authtoken page](https://dashboard.ngrok.com/get-started/your-authtoken)
-4. Run `run.bat` / `./run.sh` and select **ngrok**
+### 🚧 Coming Soon
+- [ ] File transfer over tunnel
+- [ ] Enterprise SSO integration
 
 ---
 
-## Roadmap
-
-- ✅ Unified tunnel launcher (5 providers)
-- ✅ Tailscale peer-to-peer support
-- ✅ Auto-download cloudflared binary on all platforms
-- ✅ Zrok2 environment check and auto-enable
-- ✅ Pinggy SSH tunnel with URL parsing
-- ✅ Terminal QR code generation
-- ❌ Android/iOS companion app
-- ❌ Audio streaming mode
-- ❌ File transfer over tunnel
-- ❌ Enterprise SSO integration
-
----
-
-## Contributing
+## 🤝 Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ---
 
-## License
+## 📄 License
 
-MIT License — See [LICENSE](LICENSE)
+**MIT License** - See [LICENSE](LICENSE)
+
+---
+
+<div align="center">
+
+<!-- Footer Banner -->
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:764ba2,100:667eea&height=100&section=footer&fontSize=20&fontColor=ffffff&animation=fadeIn" alt="Footer" />
+
+<p align="center">
+  <sub>Built with ❤️ for developers who value simplicity over complexity.</sub>
+</p>
+
+<p align="center">
+  <a href="https://www.anywhereinput.com">🌐 Website</a> •
+  <a href="https://pypi.org/project/anywhereinput/">📦 PyPI</a> •
+  <a href="https://github.com/Z-Hussein/anywhereinput">⭐ Star on GitHub</a>
+</p>
+
+</div>
