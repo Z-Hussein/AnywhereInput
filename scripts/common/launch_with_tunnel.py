@@ -4,7 +4,7 @@ import sys
 
 def main():
     parser = argparse.ArgumentParser(description="Launch AnywhereInput with tunnel")
-    parser.add_argument("--provider", choices=["cloudflare", "pinggy", "zrok2", "ngrok"], required=True)
+    parser.add_argument("--provider", choices=["cloudflare", "pinggy", "zrok2"], required=True)
     args = parser.parse_args()
 
     cmd = [sys.executable, "-m", "anywhereinput.server", "--tunnel", args.provider]
