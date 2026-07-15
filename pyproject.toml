@@ -4,16 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "anywhereinput"
-version = "1.1.6"
+version = "1.2.7"
 description = "Remote control your PC from any browser."
-readme = "README.md"
+readme = "README-pypi.md"
 license = {text = "MIT"}
 authors = [
     {name = "Z-Hussein"}
 ]
-keywords = ["remote-control", "screen-sharing", "websocket"]
+keywords = ["remote-control", "screen-sharing", "websocket", "remote-desktop", "cross-platform"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: End Users/Desktop",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -31,6 +31,7 @@ dependencies = [
     "mss==10.2.0",
     "Pillow==12.3.0",
     "pyyaml==6.0.3",
+    "PyQt6==6.11.0",
 ]
 
 [project.optional-dependencies]
@@ -42,8 +43,9 @@ dev = [
     "mypy==2.1.0",
 ]
 
+
 [project.scripts]
-anywhereinput = "anywhereinput.server:main"
+anywhereinput = "anywhereinput.__main__:main"
 ai-server = "anywhereinput.server:main"
 
 [tool.setuptools]
