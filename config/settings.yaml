@@ -3,7 +3,7 @@
 
 server:
   host: "0.0.0.0"
-  port: <any port you like to use> 
+  port: 8008
   debug: false
 
 screen_capture:
