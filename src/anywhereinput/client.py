@@ -33,6 +33,10 @@ class ClientHandler:
         if not filename or ".." in filename or filename.startswith("/") or "\\" in filename:
             return web.Response(text="Forbidden", status=403)
 
+        # Normalize the path and ensure it's contained within the static directory.
+        # This prevents path traversal attacks (CWE-22):
+        # 1. .resolve() normalizes the path (collapses "..", symlinks)
+        # 2. .relative_to() ensures the result is still under the static directory root
         file_path = (self._static_dir_resolved / filename).resolve()
 
         # Ensure the resolved path is still within the static directory
