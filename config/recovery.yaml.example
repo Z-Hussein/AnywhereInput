@@ -1,3 +1,14 @@
+# AnywhereInput Reference Configuration — NOT LOADED AT RUNTIME
+#
+# This file is FOR REFERENCE ONLY — it shows all available configuration options.
+# These settings are NOT loaded by the server at startup.
+#
+# The screen capture engine recovery behavior is HARDCODED in screen_capture.py
+# and is NOT configurable via config files.
+#
+# To tune capture behavior, use CLI flags:
+#   anywhereinput --fps 120 --quality 40 --scale 0.7
+
 capture_engine_recovery:
   # Health check interval in seconds
   health_check_interval: 5.0
