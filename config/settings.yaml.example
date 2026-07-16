@@ -1,3 +1,14 @@
+# AnywhereInput Reference Configuration — NOT LOADED AT RUNTIME
+#
+# This file is FOR REFERENCE ONLY — it shows all available configuration options.
+# These settings are NOT loaded by the server at startup.
+#
+# To configure the server, use ONE of these methods:
+#   1. CLI flags:  anywhereinput --fps 120 --quality 40 --scale 0.7 --port 8008
+#   2. Admin GUI:  anywhereinput --app  → Settings tab
+#
+# The server reads configuration ONLY from CLI arguments.
+# Creating config/local_settings.yaml will NOT be read (not implemented).
 # AnywhereInput Default Configuration
 # Override by creating config/local_settings.yaml (gitignored)
 
