@@ -287,12 +287,12 @@ def test_token_store_empty_initialization():
     import tempfile
     import os
 
-    tmppath = tempfile.mktemp(suffix=".json")
-    if os.path.exists(tmppath):
-        os.unlink(tmppath)
+    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
+        tmppath = f.name
 
     store = TS(path=tmppath)
     assert store._data == {}
+    os.unlink(tmppath)
 
 
 def test_token_store_default_permissions():
