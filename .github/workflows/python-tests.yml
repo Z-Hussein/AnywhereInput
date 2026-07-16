@@ -32,10 +32,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install pytest pytest-asyncio pytest-mock
 
-    - name: Verify imports (headless)
+    - name: Run tests (headless)
       run: |
-        xvfb-run -a python -c "import pyautogui, aiohttp, requests; print('All dependencies OK')"
+        xvfb-run -a python -m pytest tests/ -q --tb=short
 
   windows:
     name: Windows
@@ -57,7 +58,8 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+        pip install pytest pytest-asyncio pytest-mock
 
-    - name: Verify imports (Windows)
+    - name: Run tests (Windows)
       run: |
-        python -c "import pyautogui, aiohttp, requests; print('All dependencies OK')"
+        python -m pytest tests/ -q --tb=short
