@@ -21,7 +21,7 @@
   <a href="https://pypi.org/project/anywhereinput/">
     <img src="https://img.shields.io/pypi/pyversions/anywhereinput?style=for-the-badge&logo=python&logoColor=white&color=3776AB" alt="Python Versions" />
   </a>
-  <a href="https://github.com/yourusername/anywhereinput/blob/main/LICENSE">
+  <a href="https://github.com/z-hussein/anywhereinput/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge&logo=open-source-initiative&logoColor=white" alt="License: MIT" />
   </a>
   <a href="#">
