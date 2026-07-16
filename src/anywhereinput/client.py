@@ -29,8 +29,8 @@ class ClientHandler:
         """Serve static files (CSS, JS) with path traversal protection."""
         filename = request.match_info.get("filename", "")
 
-        # Reject paths with directory traversal attempts
-        if ".." in filename or filename.startswith("/") or "\\" in filename:
+        # Reject empty filename or paths with directory traversal attempts
+        if not filename or ".." in filename or filename.startswith("/") or "\\" in filename:
             return web.Response(text="Forbidden", status=403)
 
         file_path = (self._static_dir_resolved / filename).resolve()
