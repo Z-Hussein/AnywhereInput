@@ -9,7 +9,7 @@
   <a href="https://www.anywhereinput.com">🌐 Website</a> •
   <a href="#-quick-start">🚀 Quick Start</a> •
   <a href="#-Features-at-a-Glance">✨ Features</a> •
-  <a href="#-how-it-works">⚙️ How It Works</a> •
+  <a href="#-How-It-Works">⚙️ How It Works</a> •
   <a href="#-tunnel-providers">🔒 Tunnels</a>
 </p>
 
