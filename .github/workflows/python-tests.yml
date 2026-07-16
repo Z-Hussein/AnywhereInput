@@ -33,6 +33,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest pytest-asyncio pytest-mock
+        pip install -e .
 
     - name: Run tests (headless)
       run: |
@@ -59,6 +60,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest pytest-asyncio pytest-mock
+        pip install -e .
 
     - name: Run tests (Windows)
       run: |
