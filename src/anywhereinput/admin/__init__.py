@@ -26,7 +26,11 @@ else:
     SettingsPanel = None  # type: ignore[misc, assignment]
     MainWindow = None  # type: ignore[misc, assignment]
 
-from ._tray_app import run_admin_app, _cleanup_and_quit
+try:
+    from ._tray_app import run_admin_app, _cleanup_and_quit
+except ImportError:
+    run_admin_app = None  # type: ignore
+    _cleanup_and_quit = None  # type: ignore
 
 __all__ = [
     "QT_AVAILABLE",
