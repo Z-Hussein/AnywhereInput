@@ -124,12 +124,13 @@ def test_get_monitor_info():
     assert isinstance(info, list)
     assert len(info) >= 1
     for mon in info:
-        assert "index" in mon
-        assert "left" in mon
-        assert "top" in mon
-        assert "width" in mon
-        assert "height" in mon
-        assert "primary" in mon
+        mon_dict = mon.to_dict()
+        assert "index" in mon_dict
+        assert "left" in mon_dict
+        assert "top" in mon_dict
+        assert "width" in mon_dict
+        assert "height" in mon_dict
+        assert "primary" in mon_dict
     sc.close()
 
 
