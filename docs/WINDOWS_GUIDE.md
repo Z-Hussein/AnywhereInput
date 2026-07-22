@@ -13,7 +13,7 @@
 
 ### Required System Components (pre-installed on modern Windows)
 - **OpenSSH Client** - used by Pinggy tunnel (built into Windows 10 21H1+): `ssh -V` to verify
-- **.NET Desktop Runtime** - required by pyautogui for screen capture: [download](https://dotnet.microsoft.com/download/dotnet/8.0)
+- **.NET Desktop Runtime** - required by pyautogui for screen capture: [download](https://dotnet.microsoft.com/download/dotnet/)
 - **Graphics drivers** - ensure your GPU driver is up to date for screen capture
 
 ---
@@ -97,12 +97,22 @@ Press **Ctrl+C** in the terminal. You'll see `"✅ Server stopped"`.
 ### Rotating the Access Token
 Press **`n`** (the letter n) while the server is running. All existing connections are dropped and a new token is generated.
 
+### Configuration Files
+Use the `config` command to generate and manage reference config files:
+
+```cmd
+anywhereinput config list      # List available configs
+anywhereinput config init      # Generate default config files
+anywhereinput config view      # Show contents in terminal
+anywhereinput config edit      # Open in your editor
+```
+
 ---
 
 ## 5. Command-Line Options
 
 ```cmd
-anywhereinput --host 127.0.0.1 --port 8008 --fps 120 --quality 85 --scale 1.0 --tunnel cloudflare
+anywhereinput --host 127.0.0.1 --port 8008 --fps 120 --quality 40 --scale 0.7 --tunnel cloudflare
 ```
 
 | Flag | Default | Description |
@@ -110,8 +120,8 @@ anywhereinput --host 127.0.0.1 --port 8008 --fps 120 --quality 85 --scale 1.0 --
 | `--host` | `127.0.0.1` | Bind address (use `127.0.0.1` to restrict to localhost) |
 | `--port` | `8008` | HTTP port |
 | `--fps` | `120` | Screen capture FPS (1–120) |
-| `--quality` | `85` | JPEG quality 1–95 |
-| `--scale` | `1.0` | Stream scale factor (0.1=small, 1.0=full) |
+| `--quality` | `40` | JPEG quality 1–95 |
+| `--scale` | `0.7` | Stream scale factor (0.1=small, 1.0=full) |
 | `--no-capture` | off | Disable screen capture (test connectivity only) |
 | `--monitor` | `0` | Fixed monitor index (0=auto-track cursor) |
 
