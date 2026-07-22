@@ -5,13 +5,23 @@ import queue
 import threading
 import time
 
-import pyautogui
+from anywhereinput._constants import (
+    DEFAULT_MOVE_INTERVAL,
+    MAX_MOVE_PER_BATCH,
+    MAX_MOVES_PER_SEC,
+)
+from anywhereinput.logging_config import get_logger
 
-from anywhereinput import safe_print
+log = get_logger(__name__)
 
-# Optimize pyautogui for minimum latency
-pyautogui.FAILSAFE = False
-pyautogui.PAUSE = 0
+try:
+    import pyautogui  # type: ignore[import-untyped]
+
+    # Optimize pyautogui for minimum latency
+    pyautogui.FAILSAFE = False
+    pyautogui.PAUSE = 0
+except ImportError:
+    pyautogui = None
 
 # Sentinel value used to wake a blocked queue.get() during shutdown.
 _SENTINEL = object()
@@ -28,7 +38,14 @@ class MouseWorker(threading.Thread):
         self.queue: queue.Queue = queue.Queue(maxsize=100)  # Reduced from 200
         self.running = True
         self._pyautogui_lock = _pyautogui_lock
-        self.screen_w, self.screen_h = pyautogui.size()
+        if pyautogui is not None:
+            self.screen_w, self.screen_h = pyautogui.size()
+        else:
+            self.screen_w, self.screen_h = 1920, 1080
+            log.warning(
+                "[MouseWorker] PyAutoGUI not installed — mouse control disabled. "
+                "Install with: pip install pyautogui"
+            )
         self.mouse_down_state: dict[str, bool] = {}
         self.base_recovery_backoff_seconds = 0.05
         self.max_recovery_backoff_seconds = 1.0
@@ -46,11 +63,11 @@ class MouseWorker(threading.Thread):
 
         # Rate limiting for move events to prevent flooding X server
         self._last_move_time = 0.0
-        self._min_move_interval = 0.008  # ~125Hz max move rate
-        self._max_move_per_batch = 200  # Max pixels per batch
+        self._min_move_interval = DEFAULT_MOVE_INTERVAL
+        self._max_move_per_batch = MAX_MOVE_PER_BATCH
         self._move_count_last_sec = 0
         self._move_count_window_start = time.monotonic()
-        self._max_moves_per_sec = 500  # Safety limit
+        self._max_moves_per_sec = MAX_MOVES_PER_SEC
 
         # Safety: auto-release stuck mouse buttons
         self._last_button_check = 0.0
@@ -95,7 +112,7 @@ class MouseWorker(threading.Thread):
             return "failed"
         return "transient"
 
-    def _drain_slow_ops(self):
+    def _drain_slow_ops(self) -> None:
         """Process all pending type/hotkey operations from _slow_queue."""
         while True:
             try:
@@ -107,12 +124,20 @@ class MouseWorker(threading.Thread):
                     with _pyautogui_lock:
                         try:
                             pyautogui.write(data)
-                        except Exception:
+                        except Exception as e:
+                            log.debug(
+                                "[MouseWorker] pyautogui.write failed, falling back to per-char: %s",
+                                e,
+                            )
                             for ch in data:
                                 try:
                                     pyautogui.press(ch)
-                                except Exception:
-                                    pass
+                                except Exception as e2:
+                                    log.debug(
+                                        "[MouseWorker] pyautogui.press failed for char %r: %s",
+                                        ch,
+                                        e2,
+                                    )
                 elif op_type == "hotkey":
                     if isinstance(data, str):
                         keys = [k.strip().lower() for k in data.split(",") if k.strip()]
@@ -122,9 +147,9 @@ class MouseWorker(threading.Thread):
                         with _pyautogui_lock:
                             pyautogui.hotkey(*keys)
             except Exception as e:
-                safe_print(f"[MouseWorker] Slow op failed: {e}")
+                log.warning("[MouseWorker] Slow op failed: %s", e)
 
-    def enqueue(self, item):
+    def enqueue(self, item: dict) -> None:
         """Thread-safe enqueue. Drops oldest items when full."""
         try:
             self.queue.put_nowait(dict(item))
@@ -132,15 +157,17 @@ class MouseWorker(threading.Thread):
             try:
                 self.queue.get_nowait()
                 self.queue.put_nowait(dict(item))
-            except Exception:
-                pass
+            except Exception as e:
+                log.debug("[MouseWorker] queue overflow in enqueue: %s", e)
 
-    def stop(self):
+    def stop(self) -> None:
         self.running = False
         try:
             self.queue.put_nowait(_SENTINEL)
         except queue.Full:
             pass
+        if pyautogui is None:
+            return
         with _pyautogui_lock:
             for btn, held in self.mouse_down_state.items():
                 if held:
@@ -150,7 +177,7 @@ class MouseWorker(threading.Thread):
                         pass
 
     @staticmethod
-    def _init_x11():
+    def _init_x11() -> tuple | None:
         """Create a thread-local X11 Display for lock-free moves."""
         try:
             from Xlib.display import Display as _X11Display  # type: ignore[import-untyped]
@@ -161,22 +188,24 @@ class MouseWorker(threading.Thread):
         except Exception:
             return None
 
-    def run(self):
+    def run(self) -> None:
+        if pyautogui is None:
+            log.warning("[MouseWorker] PyAutoGUI not available — mouse input disabled")
+            return
+
         try:
             test_pos = pyautogui.position()
             self._init_ok = True
-            safe_print(f"[MouseWorker] Initialized OK (pyautogui position={test_pos})")
+            log.info("[MouseWorker] Initialized OK (pyautogui position=%s)", test_pos)
         except Exception as e:
             self._init_ok = False
-            safe_print(f"[MouseWorker] WARNING: pyautogui failed to initialize: {e}")
+            log.warning("[MouseWorker] pyautogui failed to initialize: %s", e)
 
         x11 = self._init_x11()
         if x11:
-            safe_print(
-                "[MouseWorker] Direct X11 enabled for moves (no sync round-trip)"
-            )
+            log.info("[MouseWorker] Direct X11 enabled for moves (no sync round-trip)")
         else:
-            safe_print("[MouseWorker] Using pyautogui for all operations")
+            log.info("[MouseWorker] Using pyautogui for all operations")
 
         while self.running:
             try:
@@ -190,9 +219,11 @@ class MouseWorker(threading.Thread):
                     try:
                         test_pos = pyautogui.position()
                         self._init_ok = True
-                        safe_print("[MouseWorker] pyautogui became available")
-                    except Exception:
-                        pass
+                        log.info("[MouseWorker] pyautogui became available")
+                    except Exception as e:
+                        log.debug(
+                            "[MouseWorker] pyautogui position check failed: %s", e
+                        )
                     continue
 
                 # Safety: periodically check and release stuck mouse buttons
@@ -201,13 +232,17 @@ class MouseWorker(threading.Thread):
                     with _pyautogui_lock:
                         for btn, held in list(self.mouse_down_state.items()):
                             if held:
-                                safe_print(
-                                    f"[MouseWorker] Safety: releasing stuck button {btn}"
+                                log.warning(
+                                    "[MouseWorker] Safety: releasing stuck button %s",
+                                    btn,
                                 )
                                 try:
                                     pyautogui.mouseUp(button=btn)
-                                except Exception:
-                                    pass
+                                except Exception as e:
+                                    log.warning(
+                                        "[MouseWorker] pyautogui.mouseUp on stop failed: %s",
+                                        e,
+                                    )
                                 self.mouse_down_state[btn] = False
 
                 # ── Block until data arrives ─────────────────────────────
@@ -373,8 +408,8 @@ class MouseWorker(threading.Thread):
                                 elif c["func"] == "scroll":
                                     pyautogui.scroll(c["amount"])
                                 _exec_count += 1
-                            except Exception:
-                                pass
+                            except Exception as e:
+                                log.warning("[MouseWorker] click/move failed: %s", e)
 
                         for k in queued_keys:
                             if _exec_count >= _max_exec:
@@ -382,8 +417,8 @@ class MouseWorker(threading.Thread):
                             try:
                                 pyautogui.press(k)
                                 _exec_count += 1
-                            except Exception:
-                                pass
+                            except Exception as e:
+                                log.warning("[MouseWorker] key press failed: %s", e)
 
                 # Defer slow operations
                 if queued_text_chunks:
@@ -404,8 +439,11 @@ class MouseWorker(threading.Thread):
                 backoff = self._current_backoff()
                 self.recovering_until = time.monotonic() + backoff
                 self.last_error = str(e)
-                safe_print(
-                    f"[MouseWorker] {state} input error: {e} | "
-                    f"failures={self.consecutive_failures} backoff={backoff:.2f}s"
+                log.warning(
+                    "[MouseWorker] %s input error: %s | failures=%d backoff=%.2fs",
+                    state,
+                    e,
+                    self.consecutive_failures,
+                    backoff,
                 )
                 time.sleep(backoff)
