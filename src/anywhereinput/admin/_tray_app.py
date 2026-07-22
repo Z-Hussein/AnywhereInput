@@ -31,13 +31,21 @@ def _cleanup_and_quit(window, tray_icon=None):
 def run_admin_app():
     """Entry point for `anywhereinput --app`."""
     try:
-        from PyQt6.QtWidgets import QApplication  # noqa: F401
-    except ImportError:
-        from anywhereinput import safe_print_stderr
-
-        safe_print_stderr("\u274c PyQt6 is required for the admin app.")
-        safe_print_stderr("   Install it with: pip install PyQt6")
-        _sys.exit(1)
+    from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
+    from PyQt6.QtGui import QIcon, QAction
+    from PyQt6.QtCore import Qt, QThread, pyqtSignal
+    QT_AVAILABLE = True
+except ImportError:
+    QT_AVAILABLE = False
+    # Dummy placeholders so the module loads without PyQt6
+    QApplication = None  # type: ignore
+    QSystemTrayIcon = None  # type: ignore
+    QMenu = None  # type: ignore
+    QIcon = None  # type: ignore
+    QAction = None  # type: ignore
+    Qt = None  # type: ignore
+    QThread = None  # type: ignore
+    pyqtSignal = None  # type: ignore
 
     from ._main_window import MainWindow, _get_icon_path
 
