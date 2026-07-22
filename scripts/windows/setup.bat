@@ -12,7 +12,7 @@ echo.
 echo ░█▀█░█▀█░█░█░█ ░ █░█░█░█▀▀░█▀▄░█▀▀░▀█▀░█▀█░█▀█░█░█░▀█▀
 echo ░█▀█░█░█░░█░░█▄▀▄█░█▀█░█▀▀░█▀▄░█▀▀░░█░░█░█░█▀▀░█░█░░█░
 echo ░▀░▀░▀░▀░░▀░░▀░ ░▀ ▀░▀░▀▀▀░▀░▀░▀▀▀░▀▀▀░▀░▀░▀░░░▀▀▀░░▀░.com
-echo   AnywhereInput v1.2.7 - Remote Control Your PC
+echo   AnywhereInput v1.3.0 - Remote Control Your PC
 echo         by AnywhereInput.com Github: @Z-Hussein
 echo.
 
