@@ -7,6 +7,10 @@ from datetime import datetime, timezone
 from aiohttp import web
 
 from .._connection_requests import _connection_requests
+from anywhereinput.logging_config import get_audit_logger, get_logger
+
+audit_log = get_audit_logger()
+log = get_logger(__name__)
 
 
 class RequestAPI:
@@ -43,6 +47,9 @@ class RequestAPI:
             "timestamp": time.monotonic(),
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
+
+        # Audit log
+        audit_log.connection_requested(client_ip, client_name, request_id)
 
         return web.json_response(
             {
@@ -94,8 +101,8 @@ class RequestAPI:
         body = {}
         try:
             body = await request.json()
-        except Exception:
-            pass
+        except Exception as e:
+            log.debug("approve_request JSON parse failed: %s", e)
 
         custom_token = (body or {}).get("token", "").strip()
         admin_permissions = (body or {}).get("permissions", None)
@@ -163,6 +170,11 @@ class RequestAPI:
                 )
             self._srv.token_manager._save_tokens()
 
+        # Audit log
+        approver_ip, _ = self._srv._get_client_ip(request)
+        perms = info.get("permissions", self._srv.token_manager.DEFAULT_PERMISSIONS())
+        audit_log.connection_approved(req_id, approver_ip, token, perms)
+
         return web.json_response(
             {
                 "ok": True,
@@ -185,6 +197,11 @@ class RequestAPI:
             )
 
         info["status"] = "declined"
+
+        # Audit log
+        decliner_ip, _ = self._srv._get_client_ip(request)
+        audit_log.connection_declined(req_id, decliner_ip)
+
         return web.json_response(
             {
                 "ok": True,
