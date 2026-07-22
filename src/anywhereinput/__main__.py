@@ -32,14 +32,14 @@ def main():
     args, rest = parser.parse_known_args()
 
     if args.app:
-        from .admin_app import run_admin_app
+        from .admin import run_admin_app
 
         run_admin_app()
     else:
-        from .server import main as server_main
+        from .launcher import main as launcher_main
 
-        sys.argv[1:] = rest  # remove --app flag before passing to server
-        server_main()
+        sys.argv[1:] = rest  # remove --app flag before passing to launcher
+        launcher_main()
 
 
 if __name__ == "__main__":
