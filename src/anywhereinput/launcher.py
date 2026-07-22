@@ -8,9 +8,28 @@ import subprocess
 import sys
 from pathlib import Path
 
-from anywhereinput import __version__, safe_print
+from anywhereinput import __version__
+from anywhereinput.logging_config import (
+    configure_from_args,
+    get_logger,
+    add_logging_args,
+    safe_print,
+    raw_print,
+)
+from ._constants import (
+    TUNNEL_CHOICES,
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    LOW_BW_FPS,
+    LOW_BW_QUALITY,
+    LOW_BW_SCALE,
+    DEFAULT_FPS,
+    DEFAULT_QUALITY,
+    DEFAULT_SCALE,
+)
+from .config_loader import load_settings, get_setting
 
-TUNNEL_CHOICES = ["cloudflare", "tailscale", "pinggy", "zrok2", "local"]
+log = get_logger(__name__)
 
 
 def _check_cloudflare() -> bool:
@@ -49,11 +68,14 @@ def _status_mark(ok: bool, uncertain: bool = False) -> str:
 
 
 def _print_launcher_banner() -> None:
-    safe_print()
-    safe_print("=" * 55)
-    safe_print("  AnywhereInput v{} - Remote Control Your PC".format(__version__))
-    safe_print("        by AnywhereInput.com Github: @Z-Hussein")
-    safe_print("=" * 55)
+    raw_print()
+    raw_print("  ┌──────────────────────────────────────────────────┐")
+    raw_print(
+        "  │  AnywhereInput v{}                              │".format(__version__)
+    )
+    raw_print("  │  Remote control your PC from any browser         │")
+    raw_print("  └──────────────────────────────────────────────────┘")
+    raw_print()
 
 
 def _print_start_menu() -> str:
@@ -126,8 +148,23 @@ def _print_tunnel_help() -> None:
     safe_print("  local       No tunnel, same network only (--tunnel local)")
 
 
-def main():
-    from .server_core import AnywhereInputServer
+def create_parser(cfg: dict | None = None) -> argparse.ArgumentParser:
+    """Build the CLI argument parser with YAML-backed defaults.
+
+    Args:
+        cfg: Loaded YAML config dict. If None, loaded from settings files.
+    """
+    if cfg is None:
+        cfg = load_settings()
+
+    # Resolve defaults from YAML config (CLI args override these)
+    _host_default = get_setting(cfg, "server", "host", default=DEFAULT_HOST)
+    _port_default = get_setting(cfg, "server", "port", default=DEFAULT_PORT)
+    _fps_default = get_setting(cfg, "screen_capture", "fps", default=DEFAULT_FPS)
+    _quality_default = get_setting(
+        cfg, "screen_capture", "quality", default=DEFAULT_QUALITY
+    )
+    _scale_default = get_setting(cfg, "screen_capture", "scale", default=DEFAULT_SCALE)
 
     class ModernHelpFormatter(argparse.RawDescriptionHelpFormatter):
         def __init__(self, prog):
@@ -136,16 +173,16 @@ def main():
     parser = argparse.ArgumentParser(
         prog="anywhereinput",
         usage=(
-            "anywhereinput [--tunnel {cloudflare,tailscale,pinggy,zrok2,local}]"
-            " [--host HOST] [--port PORT]\n"
-            "              [--fps FPS] [--quality QUALITY] [--scale SCALE]\n"
-            "              [--monitor MONITOR] [--no-capture] [--help-tunnels]"
-            " [--version]\n\n"
-            "Quick Start:\n"
-            "  anywhereinput                      Start interactive launcher\n"
-            "  anywhereinput --tunnel cloudflare Start immediately with Cloudflare\n"
-            "  anywhereinput --tunnel local      Start local-only mode (no tunnel)\n"
-            "  anywhereinput --help-tunnels      Show tunnel provider quick help"
+            "anywhereinput [--tunnel PROVIDER] [--host HOST] [--port PORT]\n"
+            "              [--fps FPS] [--quality Q] [--scale S]\n"
+            "              [--monitor MONITOR] [--no-capture]\n"
+            "              [--help-tunnels] [--log-level LVL] [-v] [--quiet]\n"
+            "              [--app] [--version]\n\n"
+            "Quick start:\n"
+            "  anywhereinput                        Interactive launcher\n"
+            "  anywhereinput --tunnel cloudflare    Public access (zero-config)\n"
+            "  anywhereinput --tunnel local         LAN only\n"
+            "  anywhereinput --app                  Desktop admin GUI\n"
         ),
         description=(
             "Control your PC from any browser. No app install, no account,"
@@ -153,76 +190,87 @@ def main():
         ),
         epilog="\n".join(
             [
-                "EXAMPLES:",
-                "  anywhereinput",
-                "    → (interactive menu)",
+                "EXAMPLES",
+                "──────────",
+                "  anywhereinput                        Interactive launcher",
+                "  anywhereinput --tunnel cloudflare    Public access (zero-config)",
+                "  anywhereinput --tunnel local         LAN only, no tunnel",
+                "  anywhereinput --app                  Desktop admin GUI",
+                "  anywhereinput --help-tunnels         Tunnel comparison",
                 "",
-                "  anywhereinput --tunnel cloudflare",
-                "    → Start with Cloudflare directly",
+                "TUNNELS",
+                "──────────",
+                "  cloudflare   Free, no account, random URL each run",
+                "  tailscale    P2P over Tailnet, stable address",
+                "  pinggy       SSH-based, good behind strict firewalls",
+                "  zrok2        Open-source, 5 GB/day free tier",
+                "  local        Same network only, zero deps",
                 "",
-                "  anywhereinput --fps 30 --quality 75 --scale 0.7",
-                "    → Lower bandwidth (slower capture, lower quality,"
-                " smaller stream)",
+                f"STREAMING (default: --fps {_fps_default} --quality {_quality_default} --scale {_scale_default})",
+                "──────────",
+                "  --fps N          Capture FPS (1-120)",
+                "  --quality N      JPEG quality 1-95 (lower = faster, blurrier)",
+                "  --scale F        Scale factor 0.1-1.0 (0.5 = half res)",
+                "  --monitor N      Monitor index: 0=auto, 1+=fixed",
+                "  --no-capture     Disable screen capture",
                 "",
-                "  anywhereinput --tunnel tailscale",
-                "    → Use Tailscale for peer-to-peer control",
+                "LOGGING",
+                "──────────",
+                "  -v, --verbose        DEBUG to console+file (repeat for more)",
+                "  --quiet              Console silent, file only",
+                "  --log-level LEVEL    DEBUG/INFO/WARNING/ERROR/CRITICAL",
+                "  --no-log-file        Disable file logging",
                 "",
-                "  anywhereinput --tunnel local",
-                "    → Run on local network only (no tunnel)",
+                "OTHER",
+                "──────────",
+                "  anywhereinput --app           Desktop admin GUI (tokens, logs)",
+                "  anywhereinput --version       Show version",
+                "  anywhereinput --help-tunnels  Tunnel comparison",
                 "",
-                "OTHER COMMANDS:",
-                "  anywhereinput --help",
-                "    → Show all options and examples",
-                "",
-                "  anywhereinput --help-tunnels",
-                "    → Show tunnel-specific quick help",
-                "",
-                "  anywhereinput --version",
-                "    → Show installed version",
-                "",
-                "  anywhereinput --app",
-                "    → Open desktop admin app (PyQt6 GUI)",
-                "",
-                "TUNNEL PROVIDERS:",
-                "  cloudflare  → Free, no account, auto-downloaded,"
-                " random URL per session",
-                "  tailscale   → Free tailnet P2P (requires account +"
-                " same tailnet on both devices)",
-                "  pinggy      → Free SSH tunnel (60 min timeout,"
-                " behind firewalls OK)",
-                "  zrok2       → Free with limits (5 GB/day, open-source)",
-                "  local       → Local network only (same WiFi/LAN, no tunnel)",
-                "",
-                "PROJECT:",
+                "PROJECT",
+                "──────────",
                 "  GitHub: https://github.com/Z-Hussein/AnywhereInput",
-                "  PyPI: https://pypi.org/project/anywhereinput/",
-                "  Docs: https://github.com/Z-Hussein/AnywhereInput" "/tree/main/docs",
+                "  PyPI:   https://pypi.org/project/anywhereinput/",
             ]
         ),
         formatter_class=ModernHelpFormatter,
     )
     network = parser.add_argument_group("Network")
-    network.add_argument("--host", default="127.0.0.1", help="Bind address")
-    network.add_argument("--port", type=int, default=8008, help="Server port")
+    network.add_argument(
+        "--host",
+        default=_host_default,
+        help="Bind address",
+    )
+    network.add_argument(
+        "--port",
+        type=int,
+        default=_port_default,
+        help="Server port",
+    )
 
     streaming = parser.add_argument_group("Streaming")
-    streaming.add_argument("--fps", type=int, default=120, help="Capture FPS (1-120)")
+    streaming.add_argument(
+        "--fps",
+        type=int,
+        default=_fps_default,
+        help=f"Capture FPS (1-120). Default: {_fps_default}",
+    )
     streaming.add_argument(
         "--quality",
         type=int,
-        default=40,
+        default=_quality_default,
         help=(
-            "JPEG quality for low latency (1-95). Lower = faster encode/decode"
-            " but blurrier. Default 40 is optimal for remote control."
+            f"JPEG quality for low latency (1-95). Lower = faster encode/decode"
+            f" but blurrier. Default: {_quality_default}."
         ),
     )
     streaming.add_argument(
         "--scale",
         type=float,
-        default=0.5,
+        default=_scale_default,
         help=(
-            "Scale factor for capture (0.1-1.0). Lower = smaller image = much"
-            " less data to transmit. 0.5 = half resolution."
+            f"Scale factor for capture (0.1-1.0). Lower = smaller image = much"
+            f" less data to transmit. 0.5 = half resolution. Default: {_scale_default}."
         ),
     )
     streaming.add_argument(
@@ -230,6 +278,12 @@ def main():
     )
     streaming.add_argument(
         "--no-capture", action="store_true", help="Disable screen capture"
+    )
+    streaming.add_argument(
+        "--low-bandwidth",
+        action="store_true",
+        help="Optimize for mobile data / slow connections (15fps, 60%% quality, half scale). "
+        "Adaptive streaming auto-adjusts further.",
     )
 
     connectivity = parser.add_argument_group("Connectivity")
@@ -254,10 +308,59 @@ def main():
         "--version", action="version", version=f"%(prog)s {__version__}"
     )
 
-    args = parser.parse_args()
+    # Logging arguments
+    add_logging_args(parser)
+
+    return parser
+
+
+def main() -> None:
+    from .server import AnywhereInputServer
+
+    parser = create_parser()
+    # Use parse_known_args so 'config' subcommand doesn't fail on unknown flags
+    args, remaining = parser.parse_known_args()
+
+    # Handle config subcommand
+    if remaining and remaining[0] == "config":
+        from .config_cmd import (
+            _cmd_init_run,
+            _cmd_view_run,
+            _cmd_edit_run,
+            _cmd_list_run,
+        )
+        import argparse as _ap
+
+        subcmd = remaining[1] if len(remaining) > 1 else "list"
+        # Rebuild a proper namespace for the config subcommands
+        cfg_args = _ap.Namespace(
+            settings="--settings" in remaining,
+            recovery="--recovery" in remaining,
+            all="--all" in remaining,
+        )
+        if subcmd == "init":
+            _cmd_init_run(cfg_args)
+        elif subcmd == "view":
+            _cmd_view_run(cfg_args)
+        elif subcmd == "edit":
+            _cmd_edit_run(cfg_args)
+        elif subcmd == "list":
+            _cmd_list_run(cfg_args)
+        else:
+            print("Usage: anywhereinput config <command>")
+            print("Commands:")
+            print("  init          Generate default config files from examples")
+            print("  init --recovery   Also create recovery.yaml")
+            print("  list          List available configuration files")
+            print("  view          Show current config file contents")
+            print("  edit          Open a config file in $EDITOR")
+        return
+
+    # Configure logging from args
+    configure_from_args(args)
 
     if args.app:
-        from .admin_app import run_admin_app
+        from .admin import run_admin_app
 
         run_admin_app()
         return
@@ -285,6 +388,18 @@ def main():
             )
             args.tunnel = "cloudflare"
 
+    # Apply low-bandwidth preset if requested (overrides individual settings)
+    if args.low_bandwidth:
+        args.fps = LOW_BW_FPS
+        args.quality = LOW_BW_QUALITY
+        args.scale = LOW_BW_SCALE
+        log.info(
+            "[LowBandwidth] Using mobile-optimized: %dfps, q%d, scale %.1f",
+            args.fps,
+            args.quality,
+            args.scale,
+        )
+
     server = AnywhereInputServer(
         host=args.host,
         port=args.port,
@@ -298,20 +413,14 @@ def main():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    async def _run():
+    async def _run() -> None:
         selected_tunnel = None if args.tunnel == "local" else args.tunnel
-        print(
-            f"[DEBUG] Starting server with tunnel_provider={selected_tunnel}",
-            file=sys.stderr,
-        )
+        log.debug("Starting server with tunnel_provider=%s", selected_tunnel)
         try:
             await server.start(tunnel_provider=selected_tunnel)
-            print("[DEBUG] server.start() returned", file=sys.stderr)
+            log.debug("server.start() returned")
         except Exception as e:
-            print(f"[DEBUG] Exception in start(): {e}", file=sys.stderr)
-            import traceback
-
-            traceback.print_exc()
+            log.exception("Exception in start(): %s", e)
             raise
 
     try:
@@ -319,7 +428,7 @@ def main():
     except (KeyboardInterrupt, SystemExit):
         pass
     except Exception as e:
-        safe_print(f"❌ Server error: {e}")
+        log.error("Server error: %s", e)
         import traceback
 
         traceback.print_exc()
@@ -329,13 +438,13 @@ def main():
         if server._capture_task:
             server._capture_task.cancel()
 
-        # Clear tokens on shutdown
+        # Clear tokens on shutdown — approved tokens are one-time use and should not persist across restarts
         server.token_manager.clear_tokens()
-        safe_print("[TokenManager] Tokens cleared on shutdown")
+        log.info("[TokenManager] Tokens cleared on shutdown")
 
         server.tunnel_manager.stop()
 
-        async def _cleanup_clients():
+        async def _cleanup_clients() -> None:
             async with server.clients_lock:
                 for ws in list(server.clients):
                     try:
@@ -366,6 +475,6 @@ def main():
         except Exception:
             pass
 
-        server.screen.close()
-        safe_print("\n✅ Server stopped")
+        server.screen.close()  # type: ignore[attr-defined]
+        log.info("Server stopped")
         loop.close()
