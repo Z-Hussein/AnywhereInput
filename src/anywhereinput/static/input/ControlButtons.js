@@ -21,7 +21,6 @@ export class ControlButtons {
 
     handleAction(action) {
         if (!this.client.connected || !this.client.ws || this.client.ws.readyState !== WebSocket.OPEN) {
-            console.warn('[Control] Cannot send action - not connected');
             return;
         }
         switch(action) {
