@@ -23,15 +23,53 @@ export class RequestConnectManager {
             return;
         }
 
-        // Check if we were already approved (persisted in localStorage)
-        const approvedData = localStorage.getItem('ai_request_approved');
-        if (approvedData) {
-            try {
-                const data = JSON.parse(approvedData);
-                this.client.els.requestForm.style.display = 'none';
-                this._showApprovalMessage(data.token, data.request_id);
-                return;
-            } catch(e) { localStorage.removeItem('ai_request_approved'); }
+        // If URL has a fresh token, discard any stale localStorage token
+        const urlToken = params.get('token');
+        if (urlToken) {
+            const approvedData = localStorage.getItem('ai_request_approved');
+            if (approvedData) {
+                try {
+                    const data = JSON.parse(approvedData);
+                    if (data.token !== urlToken) {
+                        // Token in URL differs from stored one — server restarted, old token is stale
+                        localStorage.removeItem('ai_request_approved');
+                        localStorage.removeItem('ai_pending_request');
+                    }
+                } catch(e) {
+                    localStorage.removeItem('ai_request_approved');
+                    localStorage.removeItem('ai_pending_request');
+                }
+            }
+            // Don't auto-show old approval — the URL has the fresh token
+            // Fall through to normal request form flow
+        } else {
+            // Check if we were already approved (persisted in localStorage)
+            const approvedData = localStorage.getItem('ai_request_approved');
+            if (approvedData) {
+                try {
+                    const data = JSON.parse(approvedData);
+
+                    // Only auto-show approval if the server URL from this visit matches
+                    // what was stored. If a new QR/tunnel link was opened, the old token is stale.
+                    const currentUrl = new URL(window.location.href).origin;
+                    const savedOrigin = data.server_url ?
+                        new URL(data.server_url.replace(/\/$/, '')).origin :
+                        null;
+
+                    if (currentUrl === savedOrigin) {
+                        // Same server — show the approved token for quick re-connect
+                        this.client.els.requestForm.style.display = 'none';
+                        this._showApprovalMessage(data.token, data.request_id);
+                        return;
+                    } else {
+                        // Different server — old approval is stale, discard it
+                        localStorage.removeItem('ai_request_approved');
+                        localStorage.removeItem('ai_pending_request');
+                    }
+                } catch(e) {
+                    localStorage.removeItem('ai_request_approved');
+                }
+            }
         }
 
         form.addEventListener('submit', (e) => {
