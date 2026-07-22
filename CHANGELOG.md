@@ -171,7 +171,7 @@
 
 ---
 
-## 🚀 [1.2.5] - *in development*
+## 🚀 [1.2.5] -
 
 > **The "It Just Works" Release** - smoother mouse, smarter watch mode, and no more ngrok.
 
