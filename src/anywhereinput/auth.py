@@ -1,31 +1,19 @@
 """Token-based authentication manager."""
 
-import secrets
 import json
+import secrets
 from pathlib import Path
 from typing import Dict, Optional, List
 
-# Import safe_print from the server module for error reporting
-# This is a circular import guard - safe_print is only used in _save_tokens errors
-try:
-    from .server import safe_print
-except ImportError:
-    # Fallback if server module not yet loaded (e.g., during package init)
-    def safe_print(*args, **kwargs):
-        print(*args, **kwargs)
+from ._ip import ip_allowed, ip_blocked
+from ._permissions import get_default_permissions
+from .logging_config import get_logger
+
+log = get_logger(__name__)
 
 
 class TokenManager:
     """Manages secure token generation, validation, and rotation."""
-
-    _DEFAULT_PERMISSIONS = (
-        "move",
-        "click",
-        "scroll",
-        "keyboard",
-        "screen_toggle",
-        "ping",
-    )
 
     @classmethod
     def DEFAULT_PERMISSIONS(cls) -> list:
@@ -35,7 +23,7 @@ class TokenManager:
         mutation (e.g. ``TokenManager.DEFAULT_PERMISSIONS.append(...)``)
         cannot affect other instances.
         """
-        return list(cls._DEFAULT_PERMISSIONS)
+        return get_default_permissions()
 
     def __init__(self, token_file: Optional[str] = None):
         # Resolve token file relative to the module's directory
@@ -51,7 +39,8 @@ class TokenManager:
         self.tokens: Dict[str, dict] = {}
         # Global IP block/deny list (applies to all tokens)
         self.blocked_ips: List[str] = []
-        self._load_tokens()
+        # Zero-trust: always start fresh — clear any stale tokens from disk
+        self.clear_tokens()
 
     def generate_token(self, name: str = "auto-generated", length: int = 32) -> str:
         """Generate a new secure random token."""
@@ -74,6 +63,9 @@ class TokenManager:
         if token not in self.tokens:
             return False
         token_data = self.tokens[token]
+        # Rejected tokens (e.g. tombstones from revocation) have no permissions — reject immediately
+        if not token_data.get("permissions"):
+            return False
         if permission and permission not in token_data.get("permissions", []):
             return False
         # Check global block list
@@ -94,71 +86,13 @@ class TokenManager:
     @staticmethod
     def _ip_allowed(client_ip: str, allowed_ips: List[str]) -> bool:
         """Check if client_ip matches any CIDR or exact IP in allowed_ips."""
-        import ipaddress
-
-        try:
-            client = ipaddress.ip_address(TokenManager._extract_ip(client_ip))
-            for allowed in allowed_ips:
-                allowed = allowed.strip()
-                if not allowed:
-                    continue
-                try:
-                    if "/" in allowed:
-                        network = ipaddress.ip_network(allowed, strict=False)
-                        if client in network:
-                            return True
-                    else:
-                        if client == ipaddress.ip_address(allowed):
-                            return True
-                except ValueError:
-                    continue
-        except ValueError:
-            pass
-        return False
-
-    @staticmethod
-    def _extract_ip(client_ip: str) -> str:
-        """Extract IP address from stored format:
-        - Bracketed IPv6 with port: [::1]:8080 -> ::1
-        - Bare IPv6 (no port): 2003:abc::1 or 2003:abc::1%eth0 -> 2003:abc::1
-        - IPv4 with port: 192.168.1.1:8080 -> 192.168.1.1
-        - Bare IPv4: 192.168.1.1 -> 192.168.1.1
-        """
-        if client_ip.startswith("["):
-            # Bracketed IPv6 with port: [::1]:8080 -> extract ::1
-            bracket_end = client_ip.find("]")
-            return client_ip[1:bracket_end] if bracket_end > 0 else client_ip
-        # Bare IPv6: 2003:abc::1 or 2003:abc::1%eth0 (multiple colons or zone index)
-        if client_ip.count(":") >= 2 or "%" in client_ip:
-            return client_ip.split("%")[0]  # strip zone index if present
-        # IPv4 with port: 192.168.1.1:8080 or bare IP
-        return client_ip.split(":")[0] if ":" in client_ip else client_ip
+        return ip_allowed(client_ip, allowed_ips)
 
     def _ip_blocked(self, client_ip: str, ip_list: Optional[List[str]] = None) -> bool:
         """Check if client_ip matches any CIDR or exact IP in ip_list (or global blocked_ips)."""
-        import ipaddress
-
         if ip_list is None:
             ip_list = self.blocked_ips
-        try:
-            client = ipaddress.ip_address(self._extract_ip(client_ip))
-            for blocked in ip_list:
-                blocked = blocked.strip()
-                if not blocked:
-                    continue
-                try:
-                    if "/" in blocked:
-                        network = ipaddress.ip_network(blocked, strict=False)
-                        if client in network:
-                            return True
-                    else:
-                        if client == ipaddress.ip_address(blocked):
-                            return True
-                except ValueError:
-                    continue
-        except ValueError:
-            pass
-        return False
+        return ip_blocked(client_ip, ip_list)
 
     def rotate(self) -> str:
         """Invalidate all existing tokens and generate a new one."""
@@ -235,8 +169,8 @@ class TokenManager:
             with open(self.token_file, "w") as f:
                 json.dump(self.tokens, f, indent=2)
         except IOError as e:
-            safe_print(
-                f"[TokenManager] WARNING: Could not save tokens to {self.token_file}: {e}"
+            log.warning(
+                "[TokenManager] Could not save tokens to %s: %s", self.token_file, e
             )
             self._last_save_error = str(e)
 
@@ -247,7 +181,7 @@ class TokenManager:
             if self.token_file.exists():
                 self.token_file.unlink()
         except Exception as e:
-            safe_print(f"[TokenManager] WARNING: Could not remove token file: {e}")
+            log.warning("[TokenManager] Could not remove token file: %s", e)
 
     @staticmethod
     def _timestamp() -> str:
