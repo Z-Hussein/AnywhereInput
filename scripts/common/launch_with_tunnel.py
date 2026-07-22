@@ -7,7 +7,7 @@ def main():
     parser.add_argument("--provider", choices=["cloudflare", "pinggy", "zrok2"], required=True)
     args = parser.parse_args()
 
-    cmd = [sys.executable, "-m", "anywhereinput.server", "--tunnel", args.provider]
+    cmd = [sys.executable, "-m", "anywhereinput.server_core", "--tunnel", args.provider]
     subprocess.run(cmd)
 
 if __name__ == "__main__":
