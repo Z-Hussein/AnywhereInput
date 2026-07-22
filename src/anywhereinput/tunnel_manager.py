@@ -1,28 +1,74 @@
 """Unified tunnel provider management."""
 
+import hashlib
 import json
 import os
-import subprocess
 import platform
-import shutil
-import time
-import requests
-import threading
 import re
+import shutil
 import signal
+import subprocess
+
+try:
+    import requests as _requests
+except ImportError:
+    _requests = None  # type: ignore[assignment]
+
+try:
+    import fcntl as _fcntl
+except ImportError:
+    _fcntl = None  # type: ignore[assignment]
+import threading
+import time
 import atexit
 import weakref
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Callable, Union, Any
+from typing import Any, Callable, Optional, Union
 
-from anywhereinput import safe_print, safe_print_stderr
+from anywhereinput.logging_config import get_logger
+from ._constants import DEFAULT_HOST
 
-_fcntl: Any = None
-try:
-    import fcntl as _fcntl
-except ImportError:
-    pass
+log = get_logger(__name__)
+
+
+def _fetch_cloudflare_hash(filename: str) -> Optional[str]:
+    """Fetch the SHA256 hash for a cloudflared release asset from GitHub.
+
+    Returns None if the hash cannot be fetched (network error, release page unavailable).
+    The caller should treat a None return as 'skip verification' rather than 'verification failed'.
+    """
+    if _requests is None:
+        return None
+    try:
+        resp = _requests.get(
+            "https://github.com/cloudflare/cloudflared/releases/latest",
+            timeout=15,
+            verify=True,
+        )
+        resp.raise_for_status()
+    except Exception:
+        return None
+
+    # Look for the asset line: filename: <hash>
+    pattern = re.compile(
+        r"^\s*" + re.escape(filename) + r":\s+([0-9a-f]{64})\s*$",
+        re.MULTILINE,
+    )
+    m = pattern.search(resp.text)
+    return m.group(1) if m else None
+
+
+def _verify_sha256(filepath: Path, expected_hash: str) -> bool:
+    """Verify a file's SHA256 hash against the expected value."""
+    h = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        while True:
+            chunk = f.read(1 << 16)
+            if not chunk:
+                break
+            h.update(chunk)
+    return h.hexdigest() == expected_hash
 
 
 def _get_data_dir() -> Path:
@@ -101,7 +147,7 @@ class CloudflareTunnel(TunnelProvider):
         return self._download()
 
     def _download(self) -> str:
-        safe_print("[Cloudflare] Downloading cloudflared...")
+        log.info("[Cloudflare] Downloading cloudflared...")
         system = platform.system().lower()
 
         if system == "windows":
@@ -124,10 +170,30 @@ class CloudflareTunnel(TunnelProvider):
 
         temp_target = self._DATA_DIR / f".{filename}.tmp"
         try:
-            r = requests.get(url, timeout=60)
+            # Explicit verify=True (default is True, but being explicit prevents future regressions)
+            r = _requests.get(url, timeout=60, verify=True)
             r.raise_for_status()
             with open(temp_target, "wb") as f:
                 f.write(r.content)
+
+            # Hash verification
+            expected_hash = _fetch_cloudflare_hash(filename)
+            if expected_hash is not None:
+                if _verify_sha256(temp_target, expected_hash):
+                    log.info("[Cloudflare] SHA256 hash verified ✓")
+                else:
+                    actual = hashlib.sha256(temp_target.read_bytes()).hexdigest()
+                    temp_target.unlink(missing_ok=True)
+                    raise RuntimeError(
+                        f"cloudflared hash mismatch! "
+                        f"expected={expected_hash[:16]}… "
+                        f"actual={actual[:16]}…"
+                    )
+            else:
+                log.info(
+                    "[Cloudflare] Could not fetch upstream hash — skipping verification (network unavailable)"
+                )
+
             if system != "windows":
                 os.chmod(temp_target, 0o755)
         except Exception as e:
@@ -154,7 +220,7 @@ class CloudflareTunnel(TunnelProvider):
             temp_target.rename(final_target)
 
         abs_path = str((self._DATA_DIR / executable).resolve())
-        safe_print(f"[Cloudflare] Saved to {abs_path}")
+        log.info("[Cloudflare] Saved to %s", abs_path)
         return abs_path
 
     def start(
@@ -165,9 +231,12 @@ class CloudflareTunnel(TunnelProvider):
 
         if not os.path.isfile(self.binary) and shutil.which(self.binary) is None:
             error_msg = f"cloudflared binary not found at '{self.binary}'"
-            safe_print(f"\n❌ {error_msg}")
-            safe_print(f"   Data directory: {self._DATA_DIR}")
-            safe_print(f"   Files in data dir: {list(self._DATA_DIR.iterdir()) if self._DATA_DIR.exists() else 'N/A'}")
+            log.error("\n❌ %s", error_msg)
+            log.error("   Data directory: %s", self._DATA_DIR)
+            log.error(
+                "   Files in data dir: %s",
+                list(self._DATA_DIR.iterdir()) if self._DATA_DIR.exists() else "N/A",
+            )
             raise FileNotFoundError(error_msg)
 
         cmd = [self.binary, "tunnel", "--url", f"http://{local_host}:{local_port}"]
@@ -194,39 +263,92 @@ class CloudflareTunnel(TunnelProvider):
                 line_count = 0
                 url_found = False
                 last_non_url_line = ""
+                # cloudflared may output the tunnel URL in several formats over its lifetime.
+                # Prioritise structured log messages first, fall back to generic URL extraction.
                 for line in proc.stdout:
                     line = line.strip()
-                    if line:
-                        line_count += 1
-                        match = re.search(
-                            r"https://[a-zA-Z0-9-]+\.trycloudflare\.com", line
-                        )
-                        if match:
-                            url_found = True
-                            safe_print(f"✅ [Cloudflare] Tunnel URL: {match.group(0)}")
-                            on_url(match.group(0))
-                            continue
+                    if not line:
+                        continue
+                    line_count += 1
 
-                        # Stay silent during normal operation; keep only last line for failure context.
+                    matched = False
+
+                    # --- structured output (cloudflared ≥ 2023): log-style messages ---
+                    # "INFO\tConnected to ..." or just a JSON/log field with the URL
+                    if line.startswith("https://") or "\thttps://" in line:
+                        pass  # handled below by regex
+                    elif line.strip().startswith("{"):
+                        try:
+                            import json as _json
+
+                            obj = _json.loads(line.strip())
+                            for key in ("URL", "url", "Hostname", "hostname"):
+                                val = obj.get(key, "")
+                                if isinstance(val, str) and val.startswith("http"):
+                                    log.info(
+                                        "✅ [Cloudflare] Tunnel URL (log): %s", val
+                                    )
+                                    on_url(val)
+                                    url_found = True
+                                    matched = True
+                                    break
+                            if matched:
+                                continue
+                        except Exception:
+                            pass  # not JSON, fall through to regex
+
+                    # --- pattern-based extraction (covers legacy output) ---
+                    # Try specific cloudflared log patterns first, then generic URL.
+                    for pattern in (
+                        r"https://[a-zA-Z0-9_-]+\.trycloudflare\.com",  # traditional
+                        r"https://[a-zA-Z0-9_-]+\.try\.cf\.net",  # newer trycloudflare alias
+                    ):
+                        m = re.search(pattern, line)
+                        if m:
+                            url_found = True
+                            log.info("✅ [Cloudflare] Tunnel URL: %s", m.group(0))
+                            on_url(m.group(0))
+                            matched = True
+                            break
+
+                    # Catch-all: any https://… trycloudflare domain embedded in log lines
+                    if not matched:
+                        for pattern in (
+                            r'["\']https://[a-zA-Z0-9_-]+\.trycloudflare\.com["\']',
+                            r"connect[^:]*:https://[a-zA-Z0-9_-]+\.trycloudflare\.com",
+                        ):
+                            m = re.search(pattern, line)
+                            if m:
+                                # Strip surrounding quotes if present
+                                url = m.group(0).strip("\"'")
+                                url_found = True
+                                log.info("✅ [Cloudflare] Tunnel URL: %s", url)
+                                on_url(url)
+                                matched = True
+                                break
+
+                    # Keep last non-URL line for failure diagnostics
+                    if not matched:
                         last_non_url_line = line
                 if line_count == 0:
                     returncode = proc.poll()
                     if returncode is not None:
-                        safe_print(
-                            f"❌ [Cloudflare] Process exited with code {returncode}"
+                        log.error(
+                            "❌ [Cloudflare] Process exited with code %s", returncode
                         )
                 elif not url_found:
                     returncode = proc.poll()
                     if returncode is not None and returncode != 0:
-                        safe_print(
-                            f"❌ [Cloudflare] Failed to establish tunnel (exit code {returncode})"
+                        log.error(
+                            "❌ [Cloudflare] Failed to establish tunnel (exit code %s)",
+                            returncode,
                         )
                         if last_non_url_line:
-                            safe_print(
-                                f"   Last cloudflared output: {last_non_url_line}"
+                            log.error(
+                                "   Last cloudflared output: %s", last_non_url_line
                             )
             except Exception as e:
-                safe_print(f"❌ [Cloudflare] Reader error: {e}")
+                log.error("❌ [Cloudflare] Reader error: %s", e)
 
         threading.Thread(target=reader, daemon=True).start()
         time.sleep(1)
@@ -261,7 +383,7 @@ class TailscaleTunnel(TunnelProvider):
                 timeout=5,
             )
             if result.returncode != 0:
-                safe_print(
+                log.warning(
                     "⚠️  Tailscale status returned non-zero - is the daemon running?"
                 )
                 return None
@@ -274,19 +396,21 @@ class TailscaleTunnel(TunnelProvider):
                 # Try BackendState as fallback
                 backend_state = self_data.get("BackendState", "")
                 online = self_data.get("Online")
-                safe_print(
-                    f"⚠️  No Tailscale IPs found (BackendState={backend_state}, Online={online})"
+                log.warning(
+                    "⚠️  No Tailscale IPs found (BackendState=%s, Online=%s)",
+                    backend_state,
+                    online,
                 )
                 return None
 
             # Pick the IPv4 tailnet IP
             ip = next((a for a in tailnet_ips if ":" not in a), tailnet_ips[0])
-            safe_print("\n🔷 Tailscale network active")
-            safe_print(f"   Tailnet IP: {ip}")
-            safe_print(f"   Server port: {local_port}")
+            log.info("\n🔷 Tailscale network active")
+            log.info("   Tailnet IP: %s", ip)
+            log.info("   Server port: %s", local_port)
             on_url(f"{ip}:{local_port}")
         except Exception as e:
-            safe_print_stderr(f"\n⚠️  Could not get tailnet IP: {e}")
+            log.warning("\n⚠️  Could not get tailnet IP: %s", e)
             return None
         return NO_PROCESS
 
@@ -351,12 +475,30 @@ class PinggyTunnel(TunnelProvider):
         def reader():
             for line in proc.stdout:
                 line = line.strip()
-                matches = re.findall(
-                    r"https?://[a-zA-Z0-9._-]+\.(?:pinggy-free\.link|free\.pinggy\.net|free\.pinggy\.io)",
-                    line,
-                )
-                for match in matches:
-                    on_url(match)
+                if not line:
+                    continue
+                # Pinggy.io outputs URLs in several formats; use both specific and generic patterns
+                matched = False
+                for pattern in (
+                    r"https://[a-zA-Z0-9_-]+\.pinggy-free\.link",
+                    r"https://[a-zA-Z0-9_-]+\.pinggy\.net/(?:free)?",
+                    r"https://[a-zA-Z0-9_-]+\.free\.pinggy\.(?:io|net)",
+                ):
+                    m = re.search(pattern, line)
+                    if m:
+                        on_url(m.group(0))
+                        matched = True
+                        break
+                # Catch-all: any HTTPS URL ending in pinggy domain
+                if not matched:
+                    for pattern in (
+                        r'["\']https://[a-zA-Z0-9._-]+\.pinggy[-.][a-z.]+/[^"\s]*',
+                    ):
+                        m = re.search(pattern, line)
+                        if m:
+                            url = m.group(0).strip("\"'")
+                            on_url(url)
+                            break
 
         threading.Thread(target=reader, daemon=True).start()
         return proc
@@ -387,10 +529,10 @@ class Zrok2Tunnel(TunnelProvider):
             )
             output = (result.stdout or "") + (result.stderr or "")
             if "not enabled" in output.lower():
-                safe_print("\n⚠️  zrok environment is NOT enabled.")
+                log.warning("\n⚠️  zrok environment is NOT enabled.")
                 return None
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning("[Zrok2] status check failed: %s", e)
 
         cmd = [
             "zrok2",
@@ -437,7 +579,8 @@ class Zrok2Tunnel(TunnelProvider):
                         chunk = proc.stdout.read(4096)
                     else:
                         chunk = proc.stdout.read(4096)
-                except Exception:
+                except Exception as e:
+                    log.debug("[Zrok2] reader chunk read failed: %s", e)
                     chunk = None
 
                 if not chunk:
@@ -486,7 +629,7 @@ class TunnelManager:
     @staticmethod
     def resolve_bind_host(provider: Optional[str], requested_host: str) -> str:
         """Choose a server bind host that works for the selected provider."""
-        if provider == "tailscale" and requested_host in ("127.0.0.1", "localhost"):
+        if provider == "tailscale" and requested_host in (DEFAULT_HOST, "localhost"):
             # Tailnet clients need a non-loopback bind target.
             return "0.0.0.0"
         return requested_host
@@ -499,10 +642,10 @@ class TunnelManager:
 
         # For local tunnel agents, prefer loopback when server listens on all interfaces.
         if bind_host in ("0.0.0.0", "::", "localhost"):
-            return "127.0.0.1"
+            return DEFAULT_HOST
         return bind_host
 
-    def _cleanup_all(self):
+    def _cleanup_all(self) -> None:
         """Kill all tracked subprocesses on exit."""
         for proc in list(self._all_procs):
             try:
@@ -513,10 +656,10 @@ class TunnelManager:
                     except subprocess.TimeoutExpired:
                         proc.kill()
                         proc.wait(timeout=1)
-            except Exception:
-                pass
+            except Exception as e:
+                log.warning("[TunnelManager] cleanup failed: %s", e)
 
-    def _kill_process_group(self, proc):
+    def _kill_process_group(self, proc) -> None:
         """Kill process and its children."""
         if proc is None:
             return
@@ -540,11 +683,11 @@ class TunnelManager:
                     except (ProcessLookupError, OSError, subprocess.TimeoutExpired):
                         proc.kill()
                         proc.wait(timeout=1)
-        except BaseException:
-            pass
+        except BaseException as e:
+            log.warning("[TunnelManager] kill process group failed: %s", e)
 
-    def list_providers(self):
-        return {name: cls().is_available() for name, cls in self.PROVIDERS.items()}
+    def list_providers(self) -> dict[str, bool]:
+        return {name: cls().is_available() for name, cls in self.PROVIDERS.items()}  # type: ignore[abstract]
 
     def start(
         self,
@@ -554,12 +697,12 @@ class TunnelManager:
         on_url: Callable[[str], None],
     ) -> bool:
         if provider not in self.PROVIDERS:
-            safe_print(f"Unknown provider: {provider}")
+            log.error("Unknown provider: %s", provider)
             return False
 
         tunnel = self.PROVIDERS[provider]()  # type: ignore[abstract]
         if not tunnel.is_available():
-            safe_print(f"Provider '{provider}' is not available on this system.")
+            log.error("Provider '%s' is not available on this system.", provider)
             return False
 
         def url_handler(url: str):
@@ -579,10 +722,10 @@ class TunnelManager:
                 # Provider like Tailscale works without a process object - success!
                 return True
             else:
-                safe_print(f"⚠️  {provider} tunnel returned no process - stopped.")
+                log.warning("⚠️  %s tunnel returned no process - stopped.", provider)
                 return False
         except Exception as e:
-            safe_print(f"❌ Failed to start {provider} tunnel: {e}")
+            log.error("❌ Failed to start %s tunnel: %s", provider, e)
             return False
 
     def stop(self) -> None:
