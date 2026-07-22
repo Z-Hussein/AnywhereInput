@@ -7,6 +7,7 @@ These tests ensure those specific failure modes cannot recur.
 import json
 import sys
 import os
+import pytest
 from pathlib import Path
 from unittest import mock
 
@@ -27,7 +28,7 @@ class TestClientIdHandlingRegression:
 
     def test_client_id_is_proper_hex_string(self):
         """Client ID must be 12-char hex string, never a WebSocket repr."""
-        from anywhereinput.server_api._token_handlers import TokenAPI
+        from anywhereinput.server._token_handlers import TokenAPI
 
         # The list_clients endpoint should return proper client_id strings
         # This test validates the contract, not the implementation
@@ -41,7 +42,7 @@ class TestClientIdHandlingRegression:
 
         Note: aiohttp auto-registers HEAD for each GET, so we count GET only.
         """
-        from anywhereinput.server_core import AnywhereInputServer
+        from anywhereinput.server import AnywhereInputServer
         import asyncio
 
         async def check():
@@ -69,7 +70,7 @@ class TestIpParsingRegression:
         Bug: '2003:abc::1' was parsed as '2003' (first hextet only).
         Fix: Proper IPv6 parsing handling multiple colons and zone indices.
         """
-        from anywhereinput.auth import TokenManager
+        from anywhereinput._ip import extract_ip
 
         # Test various IPv6 formats
         test_cases = [
@@ -81,8 +82,8 @@ class TestIpParsingRegression:
         ]
 
         for input_ip, expected in test_cases:
-            result = TokenManager._extract_ip(input_ip)
-            assert result == expected, f"_extract_ip('{input_ip}') = '{result}', expected '{expected}'"
+            result = extract_ip(input_ip)
+            assert result == expected, f"extract_ip('{input_ip}') = '{result}', expected '{expected}'"
 
     def test_connection_request_uses_get_client_ip(self):
         """Connection request endpoint must use _get_client_ip to handle X-Forwarded-For.
@@ -90,8 +91,8 @@ class TestIpParsingRegression:
         Bug: Connection requests from Cloudflare tunnel always showed 127.0.0.1
         because the endpoint used request.remote directly instead of _get_client_ip.
         """
-        from anywhereinput.server_api._request_handlers import RequestAPI
-        from anywhereinput.server_core import AnywhereInputServer
+        from anywhereinput.server._request_handlers import RequestAPI
+        from anywhereinput.server import AnywhereInputServer
 
         # The request_connect method should call self._srv._get_client_ip(request)
         # This is a contract test - the implementation detail is in the handler
@@ -111,7 +112,7 @@ class TestKickFunctionalityRegression:
 
     def test_kick_client_id_validation(self):
         """Kick endpoint must reject invalid client_id (WebSocket repr strings)."""
-        from anywhereinput.server_api._token_handlers import TokenAPI
+        from anywhereinput.server._token_handlers import TokenAPI
 
         # Check that kick_client validates client_id
         import inspect
@@ -122,7 +123,7 @@ class TestKickFunctionalityRegression:
     def test_kick_uses_proper_ip_extraction(self):
         """Kick must use proper IPv4/IPv6 parsing for block list."""
         import inspect
-        from anywhereinput.server_api._token_handlers import TokenAPI
+        from anywhereinput.server._token_handlers import TokenAPI
 
         source = inspect.getsource(TokenAPI.kick_client)
         # Should parse IPv6 properly (not just split on ':')
@@ -188,7 +189,10 @@ class TestAdminAppIconRegression:
 
     def test_admin_app_uses_favicon_as_icon(self):
         """Admin app window and taskbar must use favicon.ico."""
-        from anywhereinput.admin._main_window import _get_icon_path
+        try:
+            from anywhereinput.admin._main_window import _get_icon_path
+        except ImportError:
+            pytest.skip("PyQt6 not installed")
 
         icon_path = _get_icon_path()
         assert icon_path.endswith("favicon.ico"), f"Icon path should end with favicon.ico, got {icon_path}"
