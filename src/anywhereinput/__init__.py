@@ -5,57 +5,69 @@ Screen streaming, pixel-perfect touch mapping, keyboard input, and mouse control
 Zero-config tunnel support: Cloudflare, Tailscale, Pinggy, Zrok2.
 """
 
-import sys as _sys
-import builtins as _builtins_mod
+import sys as _sys  # noqa: F401 — used by run_admin_app
+import logging
+from pathlib import Path
 
-__version__ = "1.2.7"
+try:
+    from importlib.metadata import version as _importlib_version
+
+    __version__ = _importlib_version("anywhereinput")
+except Exception as e:
+    logger = logging.getLogger(__name__)
+    logger.debug("importlib.metadata version lookup failed: %s", e)
+    # Fallback: read from pyproject.toml (works in editable/dev mode)
+    try:
+        _pyproject = Path(__file__).parent.parent.parent / "pyproject.toml"
+        if _pyproject.exists():
+            for line in _pyproject.read_text().splitlines():
+                if line.strip().startswith("version"):
+                    __version__ = line.split("=")[1].strip().strip('"').strip("'")
+                    break
+            else:
+                __version__ = "0.0.0-dev"
+        else:
+            __version__ = "0.0.0-dev"
+    except Exception as e:
+        logger.debug("pyproject.toml version lookup failed: %s", e)
+        __version__ = "0.0.0-dev"
+
 __author__ = "Z-Hussein"
 __license__ = "MIT"
 
-# ── Safe print for Windows consoles that can't encode Unicode/emoji ──────────
+# Expose safe_print first (before server imports)
+from ._safe_print import safe_print, safe_print_stderr  # noqa: F401 — public API
 
-_builtins_print = getattr(_builtins_mod, "print", None)
-if _builtins_print is None:
-    _builtins_print = __builtins__["print"] if isinstance(__builtins__, dict) else None
+# Lazy server imports — avoids requiring aiohttp at package-import time.
+# Tests can import auth/screen_capture/logging without aiohttp installed.
+_server_names = (
+    "AnywhereInputServer",
+    "HTTPHandlers",
+    "WebSocketHandler",
+    "MessageHandler",
+    "BroadcastManager",
+    "ClientManager",
+    "ServerLifecycle",
+    "TokenAPI",
+    "RequestAPI",
+    "main",
+)
 
 
-def safe_print(*args, **kwargs):
-    """Print without crashing on Windows CP1252/GBK/etc. consoles."""
-    _safe_write(_sys.stdout, *args, **kwargs)
+def __getattr__(name: str):
+    if name in _server_names:
+        # First access triggers the eager import (with clear error if aiohttp missing)
+        from . import server
+
+        return getattr(server, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-def safe_print_stderr(*args, **kwargs):
-    """Same as safe_print but writes to stderr."""
-    _safe_write(_sys.stderr, *args, **kwargs)
-
-
-def _safe_write(file, *args, **kwargs):
-    if file not in (_sys.stdout, _sys.stderr):
-        if _builtins_print:
-            _builtins_print(*args, **kwargs)
-        return
-    # Try normal print first
-    try:
-        if _builtins_print:
-            _builtins_print(*args, **kwargs)
-        else:
-            file.write(_sys.stdout.__class__._repr(*args))
-        return
-    except (UnicodeEncodeError, UnicodeError):
-        pass
-    # Fall back: encode each arg with replacement chars
-    lines = []
-    end = kwargs.get("end", "\n")
-    sep = kwargs.get("sep", " ")
-    for arg in args:
-        if not isinstance(arg, str):
-            arg = str(arg)
-        enc = getattr(file, "encoding", None) or "utf-8"
-        encoded = arg.encode(enc, errors="replace").decode(enc, errors="replace")
-        lines.append(encoded)
-    flat = sep.join(lines) + end
-    try:
-        file.write(flat)
-        file.flush()
-    except Exception:
-        pass
+# Keep __all__ for backward compat (e.g. linters/IDEs that scan it)
+__all__ = [
+    "__version__",
+    "__author__",
+    "__license__",
+    "safe_print",
+    "safe_print_stderr",
+] + list(_server_names)
