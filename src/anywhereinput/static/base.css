@@ -1,0 +1,141 @@
+/* ===== AnywhereInput - Mobile-First Dark Theme ===== */
+:root {
+    --app-height: 100dvh;
+    --app-width: 100vw;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --bg-primary: #0b1220;
+    --bg-secondary: #111827;
+    --bg-tertiary: #161b2a;
+    --border-color: #2d3748;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent: #2563eb;
+    --accent-hover: #3b82f6;
+    --danger: #dc2626;
+    --danger-hover: #ef4444;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --shadow: 0 4px 20px rgba(0,0,0,0.5);
+    --transition: all 0.15s ease;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+    font-family: system-ui, -apple-system, BlinkSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: var(--app-height);
+    width: var(--app-width);
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#app {
+    height: var(--app-height);
+    width: var(--app-width);
+    overflow: hidden;
+}
+
+/* ===== Screens ===== */
+.screen {
+    display: none;
+    height: var(--app-height);
+    width: var(--app-width);
+    flex-direction: column;
+}
+.screen.active { display: flex; }
+
+/* ===== Login Screen ===== */
+#login-screen {
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: linear-gradient(180deg, var(--bg-primary) 0%, #0f127a 100%);
+}
+
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 28px 20px;
+    box-shadow: var(--shadow);
+}
+
+.logo {
+    text-align: center;
+    margin-bottom: 24px;
+}
+.logo svg { margin-bottom: 12px; }
+.logo h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+.logo p { color: var(--text-secondary); font-size: 0.9rem; }
+
+.input-group { margin-bottom: 16px; }
+.input-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+.input-group input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: var(--transition);
+}
+.input-group input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.btn-primary:active { background: var(--accent-hover); transform: scale(0.98); }
+
+/* Red variant for danger/sos actions */
+.btn-restart-stream {
+    background: #dc2626;
+}
+.btn-restart-stream:hover:not(:disabled) {
+    background: #b91c1c;
+}
+.btn-restart-stream:active:not(:disabled) {
+    background: #991b1b;
+}
+
+.connection-status {
+    margin-top: 12px;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    text-align: center;
+    display: none;
+}
+.connection-status.error { display: block; background: rgba(220, 38, 38, 0.1); color: #f87171; border: 1px solid var(--danger); }
+.connection-status.success { display: block; background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid var(--success); }
