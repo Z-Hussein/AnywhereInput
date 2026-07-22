@@ -5,7 +5,8 @@ import threading
 import urllib.request as urq
 from typing import Dict, Optional
 
-from anywhereinput import safe_print
+from anywhereinput._constants import DEFAULT_PORT
+from anywhereinput.logging_config import get_logger
 from PyQt6.QtCore import QMetaObject, Q_ARG, Qt, pyqtSlot
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -25,6 +26,8 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFont
 
+log = get_logger(__name__)
+
 
 class TokenManagerDialog(QDialog):
     """Create / edit a token with IP allowlist and input permissions."""
@@ -32,14 +35,18 @@ class TokenManagerDialog(QDialog):
     def __init__(
         self,
         store,
-        port: int = 8008,
+        port: int = DEFAULT_PORT,
         existing_token: Optional[str] = None,
         parent=None,
     ):
         super().__init__(parent)
-        self.store = store
         self._port = port
         self._existing = existing_token
+        self._cached_data = {}
+
+        if existing_token:
+            self._cached_data = self._fetch_existing_data()
+
         self.setWindowTitle("Token Manager" if not existing_token else "Edit Token")
         self.setFixedWidth(420)
         self.init_ui()
@@ -48,26 +55,24 @@ class TokenManagerDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
 
-        # Name
         name_layout = QHBoxLayout()
         name_layout.addWidget(QLabel("Name:"))
         self.name_input = QLineEdit(
-            self._existing_data["name"] if self._existing else ""
+            self._cached_data.get("name", "") if self._existing else ""
         )
         name_layout.addWidget(self.name_input)
         layout.addLayout(name_layout)
 
-        # Permissions checkboxes
         perm_group = QGroupBox("Permissions")
         perm_layout = QVBoxLayout(perm_group)
         default_perms = ["move", "click", "scroll", "keyboard", "screen_toggle"]
         self.perm_checks: Dict[str, QCheckBox] = {}
         for p in default_perms:
             cb = QCheckBox(p)
-            if self._existing and p in self._existing_data.get("permissions", []):
+            if self._existing and p in self._cached_data.get("permissions", []):
                 cb.setChecked(True)
             else:
-                cb.setChecked(False)
+                cb.setChecked(True)
             self.perm_checks[p] = cb
             perm_layout.addWidget(cb)
 
@@ -78,37 +83,38 @@ class TokenManagerDialog(QDialog):
         perm_layout.addLayout(btns)
         layout.addWidget(perm_group)
 
-        # IP Allowlist
         ip_group = QGroupBox("IP Allowlist (leave empty = allow all)")
         ip_layout = QVBoxLayout(ip_group)
         self.ip_input = QTextEdit()
         self.ip_input.setPlaceholderText("192.168.1.0/24\n10.0.0.1")
         if self._existing:
-            self.ip_input.setText("\n".join(self._existing_data.get("allowed_ips", [])))
+            self.ip_input.setText("\n".join(self._cached_data.get("allowed_ips", [])))
         ip_layout.addWidget(self.ip_input)
         layout.addWidget(ip_group)
 
-        # Show full token section (view-only during edit)
         if self._existing:
             show_box = QGroupBox("Token Value")
-            show_layout = QVBoxLayout(show_box)  # noqa: F841
+            show_layout = QVBoxLayout(show_box)
             self.token_display = QLineEdit(self._existing)
             self.token_display.setReadOnly(True)
             self.token_display.setFont(QFont("Monospace", 9))
+            show_layout.addWidget(self.token_display)
             layout.addWidget(show_box)
 
-        # Blocked IPs section (only for existing tokens)
         if self._existing:
             blocked_group = QGroupBox("Blocked IPs (kicked clients)")
             blocked_layout = QVBoxLayout(blocked_group)
             self.blocked_table = QTableWidget()
             self.blocked_table.setColumnCount(2)
             self.blocked_table.setHorizontalHeaderLabels(["Blocked IP", "Action"])
-            self.blocked_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-            self.blocked_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+            self.blocked_table.horizontalHeader().setSectionResizeMode(
+                0, QHeaderView.ResizeMode.Stretch
+            )
+            self.blocked_table.setSelectionBehavior(
+                QTableWidget.SelectionBehavior.SelectRows
+            )
             self.blocked_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
             blocked_layout.addWidget(self.blocked_table)
-            # Refresh button
             blocked_btn_layout = QHBoxLayout()
             refresh_blocked = QPushButton("Refresh", clicked=self._refresh_blocked)
             blocked_btn_layout.addWidget(refresh_blocked)
@@ -116,7 +122,6 @@ class TokenManagerDialog(QDialog):
             blocked_layout.addLayout(blocked_btn_layout)
             layout.addWidget(blocked_group)
 
-        # Buttons
         btn_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel,
             parent=self,
@@ -133,6 +138,7 @@ class TokenManagerDialog(QDialog):
         for cb in self.perm_checks.values():
             cb.setChecked(False)
 
+    @pyqtSlot()
     def _refresh_blocked(self):
         """Fetch and display blocked IPs for this token."""
         if not self._existing:
@@ -141,7 +147,9 @@ class TokenManagerDialog(QDialog):
 
     def _fetch_blocked(self):
         try:
-            req = urq.Request(f"http://127.0.0.1:{self._port}/api/tokens/{self._existing}/blocked-ips")
+            req = urq.Request(
+                f"http://127.0.0.1:{self._port}/api/tokens/{self._existing}/blocked-ips"
+            )
             with urq.urlopen(req, timeout=5) as resp:
                 data = json.loads(resp.read())
             blocked_ips = data.get("blocked_ips", [])
@@ -152,7 +160,7 @@ class TokenManagerDialog(QDialog):
                 Q_ARG(list, blocked_ips),
             )
         except Exception as e:
-            safe_print(f"Error fetching blocked IPs: {e}")
+            log.error("Error fetching blocked IPs: %s", e)
             QMetaObject.invokeMethod(
                 self,
                 "_show_blocked_error",
@@ -172,16 +180,14 @@ class TokenManagerDialog(QDialog):
             ip_item = QTableWidgetItem(ip)
             self.blocked_table.setItem(row, 0, ip_item)
 
-            # Unblock button
             unblock_btn = QPushButton("Unblock")
             unblock_btn.setFixedWidth(80)
-            unblock_btn.clicked.connect(
-                lambda _, i=ip: self._unblock_ip(i)
-            )
+            unblock_btn.clicked.connect(lambda _, i=ip: self._unblock_ip(i))
             self.blocked_table.setCellWidget(row, 1, unblock_btn)
 
     def _unblock_ip(self, ip):
         """Remove an IP from the token's blocked list."""
+
         def do_unblock():
             try:
                 req = urq.Request(
@@ -190,14 +196,23 @@ class TokenManagerDialog(QDialog):
                 )
                 with urq.urlopen(req, timeout=5) as resp:
                     json.loads(resp.read())
-                # Refresh the table
-                QMetaObject.invokeMethod(
+
+                # HTTP succeeded - refresh the blocked IPs table on the main thread
+                success = QMetaObject.invokeMethod(
                     self,
                     "_refresh_blocked",
                     Qt.ConnectionType.QueuedConnection,
                 )
+                if not success:
+                    log.error("Failed to dispatch _refresh_blocked")
+                    QMetaObject.invokeMethod(
+                        self,
+                        "_show_unblock_error",
+                        Qt.ConnectionType.QueuedConnection,
+                        Q_ARG(str, f"Failed to refresh blocked IPs list after unblock: {ip}"),
+                    )
             except Exception as e:
-                safe_print(f"Error unblocking IP: {e}")
+                log.error("Error unblocking IP: %s", e)
                 QMetaObject.invokeMethod(
                     self,
                     "_show_unblock_error",
@@ -205,26 +220,30 @@ class TokenManagerDialog(QDialog):
                     Q_ARG(str, f"Failed to unblock IP {ip}: {e}"),
                 )
 
+        threading.Thread(target=do_unblock, daemon=True).start()
+
     @pyqtSlot(str)
     def _show_unblock_error(self, error_msg):
         QMessageBox.warning(self, "Unblock Failed", error_msg)
 
-    @property
-    def _existing_data(self) -> dict:
+    def _fetch_existing_data(self) -> dict:
+        """Fetch existing token data from server."""
         if not self._existing:
             return {}
         try:
-            import urllib.request as urq
-
             req = urq.Request(f"http://127.0.0.1:{self._port}/api/tokens")
             with urq.urlopen(req, timeout=2) as resp:
                 data = json.loads(resp.read())
             for t in data.get("tokens", []):
                 if t.get("full_token") == self._existing:
                     return t
-        except Exception:
-            pass
+        except Exception as e:
+            log.debug("Fetch existing token failed: %s", e)
         return {}
+
+    @property
+    def _existing_data(self) -> dict:
+        return self._cached_data
 
     def _on_ok(self):
         name = self.name_input.text().strip() or "unnamed"
@@ -232,8 +251,6 @@ class TokenManagerDialog(QDialog):
 
         if self._existing:
             try:
-                import urllib.request as urq
-
                 data = json.dumps({"name": name, "permissions": perms}).encode()
                 req = urq.Request(
                     f"http://127.0.0.1:{self._port}/api/tokens/{self._existing}",
@@ -248,8 +265,6 @@ class TokenManagerDialog(QDialog):
                 return
         else:
             try:
-                import urllib.request as urq
-
                 data = json.dumps({"name": name, "permissions": perms}).encode()
                 req = urq.Request(
                     f"http://127.0.0.1:{self._port}/api/tokens",
