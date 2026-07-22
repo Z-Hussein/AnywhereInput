@@ -1,9 +1,11 @@
 """ApprovalDialog - approve/decline connection request dialog."""
 
 import json
+import logging
 import secrets
 from typing import Dict
 
+from anywhereinput._constants import DEFAULT_PORT
 from PyQt6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -22,8 +24,15 @@ from PyQt6.QtWidgets import (
 class ApprovalDialog(QDialog):
     """Dialog for approving a connection request with options for auto or custom token."""
 
+    log = logging.getLogger("anywhereinput.admin.approval")
+
     def __init__(
-        self, parent, client_name: str, port: int, req_id: str, auto_token_preview: str
+        self,
+        parent,
+        client_name: str,
+        port: int = DEFAULT_PORT,
+        req_id: str = "",
+        auto_token_preview: str = "",
     ):
         super().__init__(parent)
         self._client_name = client_name
@@ -96,7 +105,7 @@ class ApprovalDialog(QDialog):
         )
         custom_ly.addRow("Token Value:", self.custom_token_input)
 
-        gen_btn = QPushButton("🎲 Generate Random")
+        gen_btn = QPushButton("Generate Random")
         gen_btn.clicked.connect(self._generate_token)
         custom_ly.addRow("", gen_btn)
 
@@ -104,7 +113,7 @@ class ApprovalDialog(QDialog):
         layout.addWidget(choice_group)
 
         # Buttons
-        approve_btn = QPushButton("✅ Approve Connection")
+        approve_btn = QPushButton("Approve Connection")
         cancel_btn = QPushButton("Cancel")
         approve_btn.setStyleSheet(
             "background-color: #22c55e; color: white; font-weight: bold;"
@@ -183,8 +192,8 @@ class ApprovalDialog(QDialog):
                     )
                     with urq.urlopen(req_urq, timeout=5) as resp:
                         json.loads(resp.read())
-                except Exception:
-                    pass
+                except Exception as e:
+                    self.log.debug("Create token for approval failed: %s", e)
             self._permissions = perms if not tok_val else perms
         else:
             self._custom_token = ""
