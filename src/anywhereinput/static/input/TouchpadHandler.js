@@ -15,12 +15,15 @@ export class TouchpadHandler {
         this.isDragging = false;
         this.longPressTimer = null;
         this.longPressDuration = 600;
-        // Delta buffer - accumulates pointermove deltas and flushes at ~60Hz
-        // for smooth cursor movement (mirrors the original app.js behavior).
+        // Delta buffer - flushes ASAP for low latency on mobile
         this.moveBuffer = { dx: 0, dy: 0 };
-        this.moveInterval = 16; // 60Hz update rate
-        this.lastMoveTime = 0;
+        this.hasPendingMove = false;
         this.isPainting = false;
+
+        // Two-finger scroll state
+        this.twoFingerScrolling = false;
+        this.lastTwoFingerY = 0;
+        this.scrollAccum = 0;
     }
 
     bind() {
@@ -56,9 +59,53 @@ export class TouchpadHandler {
             e.preventDefault();
             this.client.send({ type: 'scroll', amount: -Math.sign(e.deltaY) * 15 });
         }, { passive: false });
+
+        // Two-finger scroll on touch devices
+        tp.addEventListener('touchstart', (e) => this._onTouchStart(e), { passive: false });
+        tp.addEventListener('touchmove', (e) => this._onTouchMove(e), { passive: false });
+        tp.addEventListener('touchend', (e) => this._onTouchEnd(e), { passive: false });
+        tp.addEventListener('touchcancel', (e) => this._onTouchEnd(e), { passive: false });
+    }
+
+    _onTouchStart(e) {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            this.twoFingerScrolling = true;
+            this.lastTwoFingerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            this.scrollAccum = 0;
+            // Cancel any ongoing single-finger drag
+            this.touchStart = { x: 0, y: 0, time: 0 };
+            this.isDragging = false;
+        }
+    }
+
+    _onTouchMove(e) {
+        if (this.twoFingerScrolling && e.touches.length === 2) {
+            e.preventDefault();
+            const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            const dy = midY - this.lastTwoFingerY;
+            this.lastTwoFingerY = midY;
+
+            // Accumulate and send scroll when threshold reached
+            this.scrollAccum += dy;
+            const threshold = 3;
+            if (Math.abs(this.scrollAccum) >= threshold) {
+                const amount = -Math.round(this.scrollAccum / threshold) * 15;
+                this.client.send({ type: 'scroll', amount });
+                this.scrollAccum = 0;
+            }
+        }
+    }
+
+    _onTouchEnd(e) {
+        if (this.twoFingerScrolling && e.touches.length < 2) {
+            this.twoFingerScrolling = false;
+            this.scrollAccum = 0;
+        }
     }
 
     _onPointerDown(e, tp) {
+        if (this.twoFingerScrolling) return;
         e.preventDefault();
         this.touchStart = { x: e.clientX, y: e.clientY, time: Date.now() };
         this.touchLast = { x: e.clientX, y: e.clientY };
@@ -88,6 +135,7 @@ export class TouchpadHandler {
     }
 
     _onPointerMove(e, tp) {
+        if (this.twoFingerScrolling) return;
         if (!this.touchStart.time) return;
 
         const rawDx = e.clientX - this.touchLast.x;
@@ -95,9 +143,15 @@ export class TouchpadHandler {
 
         if (rawDx === 0 && rawDy === 0) return;
 
-        // Accumulate deltas into moveBuffer - flushes at ~60Hz for smooth movement.
+        // Accumulate deltas into moveBuffer
         this.moveBuffer.dx += rawDx * this.client.sensitivity;
         this.moveBuffer.dy += rawDy * this.client.sensitivity;
+
+        // Schedule flush ASAP - no fixed interval, fires on next animation frame
+        if (!this.hasPendingMove) {
+            this.hasPendingMove = true;
+            requestAnimationFrame(this._flushMoves.bind(this));
+        }
 
         const totalMoved = Math.abs(e.clientX - this.touchStart.x)
             + Math.abs(e.clientY - this.touchStart.y);
@@ -107,6 +161,25 @@ export class TouchpadHandler {
         }
 
         this.touchLast = { x: e.clientX, y: e.clientY };
+    }
+
+    _flushMoves() {
+        this.hasPendingMove = false;
+        if (this.moveBuffer.dx === 0 && this.moveBuffer.dy === 0) return;
+
+        const sendDx = Math.round(this.moveBuffer.dx);
+        const sendDy = Math.round(this.moveBuffer.dy);
+        this.client.send({
+            type: 'move', mode: 'relative',
+            dx: sendDx, dy: sendDy,
+        });
+        this.moveBuffer.dx = 0;
+        this.moveBuffer.dy = 0;
+
+        // Keep flushing while still dragging
+        if (this.isDragging && this.client.connected) {
+            requestAnimationFrame(this._flushMoves.bind(this));
+        }
     }
 
     _onPointerUp(e, tp) {
@@ -153,27 +226,28 @@ export class TouchpadHandler {
     }
 
     startMoveFlushTimer() {
-        if (this.moveTimer) clearTimeout(this.moveTimer);
-        const flush = () => {
-            // Flush buffered deltas to server at ~60Hz for smooth movement.
-            if (Math.abs(this.moveBuffer.dx) > 0.1 || Math.abs(this.moveBuffer.dy) > 0.1) {
-                const sendDx = Math.round(this.moveBuffer.dx);
-                const sendDy = Math.round(this.moveBuffer.dy);
-                this.client.send({
-                    type: 'move', mode: 'relative',
-                    dx: sendDx, dy: sendDy,
-                });
-                this.moveBuffer.dx = 0;
-                this.moveBuffer.dy = 0;
+        // Use requestAnimationFrame instead of setTimeout for lower latency
+        const flushLoop = () => {
+            if (this.moveBuffer.dx === 0 && this.moveBuffer.dy === 0) {
+                this.moveTimer = requestAnimationFrame(flushLoop);
+                return;
             }
-            if (this.client.connected) this.moveTimer = setTimeout(flush, this.moveInterval);
+            const sendDx = Math.round(this.moveBuffer.dx);
+            const sendDy = Math.round(this.moveBuffer.dy);
+            this.client.send({
+                type: 'move', mode: 'relative',
+                dx: sendDx, dy: sendDy,
+            });
+            this.moveBuffer.dx = 0;
+            this.moveBuffer.dy = 0;
+            if (this.client.connected) this.moveTimer = requestAnimationFrame(flushLoop);
         };
-        this.moveTimer = setTimeout(flush, this.moveInterval);
+        this.moveTimer = requestAnimationFrame(flushLoop);
     }
 
     cleanup() {
         if (this.moveTimer) {
-            clearTimeout(this.moveTimer);
+            cancelAnimationFrame(this.moveTimer);
             this.moveTimer = null;
         }
     }
