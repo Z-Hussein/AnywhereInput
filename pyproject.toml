@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "anywhereinput"
-version = "1.2.7"
+version = "1.3.0"
 description = "Remote control your PC from any browser."
 readme = "README-pypi.md"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Z-Hussein"}
 ]
@@ -15,26 +15,29 @@ keywords = ["remote-control", "screen-sharing", "websocket", "remote-desktop", "
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 requires-python = ">=3.9"
 dependencies = [
     "pyautogui>=0.9.54",
     "aiohttp>=3.14.1",
+    "PyYAML>=6.0",
     "requests>=2.34.2",
     "qrcode[pil]>=8.2",
     "mss>=10.2.0",
     "Pillow>=12.3.0",
-    "pyyaml>=6.0.3",
-    "PyQt6>=6.11.0",
 ]
 
 [project.optional-dependencies]
+app = [
+    "PyQt6>=6.11.0",
+]
 dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
@@ -43,16 +46,28 @@ dev = [
     "mypy>=2.1.0",
 ]
 
+[tool.pytest.ini_options]
+addopts = "--tb=short"
+testpaths = ["tests"]
+asyncio_mode = "auto"
 
 [project.scripts]
 anywhereinput = "anywhereinput.__main__:main"
-ai-server = "anywhereinput.server:main"
+anywhereinput-server = "anywhereinput.server.server_core:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+exclude = ["*.venv*", "tests*"]
 
 [tool.setuptools.package-data]
 anywhereinput = ["static/*", "static/**/*"]
+
+[project.urls]                                                                                     
+Homepage = "https://github.com/Z-Hussein/AnywhereInput"                                            
+Documentation = "https://github.com/Z-Hussein/AnywhereInput#readme"                                
+Repository = "https://github.com/Z-Hussein/AnywhereInput"                                          
+Changelog = "https://github.com/Z-Hussein/AnywhereInput/blob/main/CHANGELOG.md"                    
+"Bug Tracker" = "https://github.com/Z-Hussein/AnywhereInput/issues"
