@@ -14,6 +14,80 @@
 
 ---
 
+## 🚀 [1.3.0] — 2026-07-20
+
+> **The "Security & Reliability" Release** — Rate limiting, audit logging, capture mode presets, adaptive streaming, and 43 crash bugs fixed.
+
+### ✨ What's New
+
+| Feature | Why You'll Love It |
+|---------|-------------------|
+| **Rate Limiting** | Per-IP limits on WebSocket auth (10/s), API (30/s), and token creation (5/10s). Localhost excluded for admin app. |
+| **Audit Logging** | JSON-lines rotating log (`logs/audit.log`) for all security events: token created/revoked/rotated, client connected/disconnected/kicked, IP blocked/unblocked, connection requested/approved/declined. |
+| **Capture Mode Presets** | Admin app Screen Capture group now has a Mode dropdown: Balanced (60fps/q70), Quality (60fps/q90), Performance (30fps/q55), Low Bandwidth (15fps/q60). Auto-detects matching mode when spinners change. |
+| **Custom Capture Modes** | Save your own profiles with Save/Delete buttons. Stored in `capture_modes.json`. |
+| **Structured Logging** | Rotating file handler (10MB × 5 files) + console handler. `-v` for DEBUG, `--quiet` for file-only. |
+| **`--low-bandwidth` Flag** | Mobile data preset: 15fps, 60% quality, half scale. Adaptive streaming auto-adjusts further. |
+| **Adaptive Streaming** | Per-client backpressure (skip frames for slow clients), auto-reduce FPS when frames delayed, slow recovery. |
+| **Real-Time FPS & Bandwidth Metrics** | Engine status API (`/api/engine`) now returns live FPS estimate (moving average over last 5s) and bandwidth consumption (bytes/sec sent to clients). Admin dashboard top bar displays both values. |
+| **Global IP Blocking via TokenManager** | Dedicated `POST /api/blocked-ips` endpoint adds IPs to `TokenManager.blocked_ips`, blocking all connections from that IP regardless of token. Separate from per-token allow/block lists. |
+| **295 Tests** | 6 new test files covering capture modes, rate limiter, logging config, screen capture utils, token handlers, request handlers, CLI arg parsing. Zero failures. |
+
+### 🔒 Security
+
+| Feature | Why It Matters |
+|---------|---------------|
+| **Rate Limiting** | Prevents brute-force token auth and API abuse from external IPs |
+| **Audit Trail** | Full accountability log for all security-relevant actions |
+| **Zero-Trust Tokens** | All tokens cleared on server start — fresh session every restart |
+| **Stale Token Cleanup** | Client-side URL token comparison, localStorage clear on auth error |
+| **Kick vs. Block IP Separation** | Kick action now revokes only the specific client's token (creates tombstone with empty permissions), NOT global IP block. Dedicated global IP block via `TokenManager.blocked_ips` prevents kicking one client from blocking others on the same local network |
+| **Tombstone Token Rejection** | Revoked tokens stored as tombstones with empty `permissions` lists; `validate()` explicitly rejects any token lacking permissions, preventing reuse of revoked tokens |
+
+### 🐛 Fixed
+
+| Bug | The Fix |
+|-----|---------|
+| **`requests` not imported** in `tunnel_manager.py` | `import requests` with fallback to `None` |
+| **`_fcntl` undefined** in `tunnel_manager.py` | `import fcntl` with fallback to `None` |
+| **`Optional`/`logging` not imported** in `screen_capture/utils.py` | Added both imports |
+| **`io` not imported** in `screen_capture/base.py` | Added `import io` |
+| **`CaptureEngineState` not imported** in `screen_capture/backends/windows.py` | Added to import from `models` |
+| **`log` undefined** in `admin/_approval_dialog.py` | Added module-level logger |
+| **`.admin_app` wrong module** in `launcher.py` | Changed to `.admin` |
+| **Bare `log` instead of `self.log`** in `admin/_main_window.py:684,735` | Changed to `self.log` |
+| **`log.debug()` on `AuditLogger`** in `_token_handlers.py` and `_request_handlers.py` | Split into `audit_log` (audit events) + `log` (debug/info messages) |
+| **`host_header` UnboundLocalError** in `server_ws.py` | Moved definition before `if origin:` block |
+| **Dead `_conc_limiter.add_connection()`** reference | Removed (class was deleted) |
+| **`anywhereinput-server` entry point** wrong module path | Fixed `anywhereinput.server_core:main` → `anywhereinput.server.server_core:main` |
+| **Client stale token reuse** | URL token comparison discards stale localStorage tokens; auth error clears localStorage |
+| **Admin app rate limit 429** | Localhost IPs excluded from rate limiter |
+| **Revoked token bypassed auth** | Tombstone tokens (empty `permissions`) were accepted by `validate()`. Added explicit permission check: `if not token_data.get("permissions"): return False` |
+| **Kick action blocked global IP** | Kick added client IP to server-level `_blocked_ips`, blocking all clients from that IP. Fixed: kick now only revokes the specific token; global IP block requires dedicated endpoint |
+| **Unblock IP button raised QMetaObject error** | `_refresh_blocked` missing `@pyqtSlot()` decorator caused silent dispatch failure when called from background thread via `QMetaObject.invokeMethod()`. Added decorator + return value check in `_unblock_ip` |
+| **Global IP check on WS connect removed** | Redundant `blocked_ips` check removed from `server_ws.py`; connection blocking now handled entirely by token validation and `TokenManager.blocked_ips` |
+| **Dashboard FPS/bandwidth always showed "-"** | `/api/engine` returned no FPS or bandwidth fields; capturer tracked frame counts but not real-time FPS, server tracked no bandwidth. Added FPS moving-average to `CaptureStats`, per-client bandwidth tracking in broadcast loop, exposed both on `/api/engine`, fixed dashboard to read new field paths |
+| **Duplicate `self._blocked_ips` on server core** | Removed stale set attribute from `server_core.py` — global IP blocking now handled exclusively via `TokenManager.blocked_ips` |
+
+### 📦 Dependencies
+
+| Change | Why |
+|--------|-----|
+| **pyyaml removed** | Was listed in pyproject.toml but never imported anywhere |
+| **PyQt6 optional** | Moved to `[project.optional-dependencies] app` — not needed for headless server |
+| **Python 3.13/3.14** | Added to classifiers (tested and confirmed working) |
+
+### ⚡ Performance
+
+| Setting | Before | After | Why |
+|---------|--------|-------|-----|
+| Default FPS | 120 | **60** | Better balance of smoothness vs CPU/battery |
+| Default Quality | 40 | **70** | Crisper image with minimal latency increase |
+| Default Scale | 0.7 | **0.8** | Better readability on mobile devices |
+| Adaptive streaming | None | **Per-client backpressure** | Slow clients don't block fast ones |
+
+---
+
 ## 🚀 [1.2.7] — 2026-07-16
 
 > **The "Polish & Reliability" Release** — Cloudflare tunnel fixes, kick improvements, blocked IP management, and UI polish.
