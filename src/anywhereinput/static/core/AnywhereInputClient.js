@@ -118,6 +118,14 @@ export class AnywhereInputClient {
                 break;
             case 'error':
                 this.ui.showStatus(data.message, 'error');
+                // If auth-related error, clear stale token so user sees login screen next visit
+                if (data.message && (
+                    data.message.toLowerCase().includes('invalid token') ||
+                    data.message.toLowerCase().includes('token') && data.message.toLowerCase().includes('auth')
+                )) {
+                    localStorage.removeItem('ai_request_approved');
+                    localStorage.removeItem('ai_pending_request');
+                }
                 this.connection.ws.close();
                 break;
             case 'screen':
@@ -157,7 +165,6 @@ export class AnywhereInputClient {
     sendKey(key) { this.send({ type: 'key', key: key }); }
     sendHotkey(keys) {
         if (!this.connected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
-            console.warn('[Hotkey] Cannot send - not connected or WebSocket closed');
             return;
         }
         // Accept both comma-separated string ("ctrl,a") and array (['ctrl','a'])
