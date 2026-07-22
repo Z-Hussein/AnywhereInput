@@ -2,6 +2,13 @@
 
 from aiohttp import web
 
+from anywhereinput._ip import extract_ip
+from anywhereinput._constants import WS_CLOSE_KICKED
+from anywhereinput.logging_config import get_audit_logger, get_logger
+
+audit_log = get_audit_logger()
+log = get_logger(__name__)
+
 
 class TokenAPI:
     """Token CRUD endpoints - registered as aiohttp routes."""
@@ -28,17 +35,25 @@ class TokenAPI:
         """Create a new token - merges with existing store."""
         try:
             body = await request.json()
-        except Exception:
+        except Exception as e:
+            log.debug("create_token JSON parse failed: %s", e)
             body = {}
         name = body.get("name", body.get("label", "manual") or "manual")
         permissions = body.get(
             "permissions", self._srv.token_manager.DEFAULT_PERMISSIONS()
         )
+        allowed_ips = body.get("allowed_ips", [])
         new_token = self._srv.token_manager.generate_token(name=name, length=32)
         # Overwrite default permissions with custom ones
         if new_token in self._srv.token_manager.tokens:
             self._srv.token_manager.tokens[new_token]["permissions"] = permissions
+            self._srv.token_manager.tokens[new_token]["allowed_ips"] = allowed_ips
             self._srv.token_manager._save_tokens()
+
+        # Audit log
+        client_ip, _ = self._srv._get_client_ip(request)
+        audit_log.token_created(new_token, name, permissions, allowed_ips, client_ip)
+
         return web.json_response(
             {"token": new_token, "name": name, "permissions": permissions},
             status=201,
@@ -50,6 +65,11 @@ class TokenAPI:
         ok = self._srv.token_manager.revoke(full_token)
         if not ok:
             return web.json_response({"error": "Token not found"}, status=404)
+
+        # Audit log
+        client_ip, _ = self._srv._get_client_ip(request)
+        audit_log.token_revoked(full_token, client_ip, "api_revoke")
+
         return web.json_response({"ok": True})
 
     async def update_token(self, request):
@@ -62,11 +82,28 @@ class TokenAPI:
         except Exception:
             return web.json_response({"error": "Invalid JSON"}, status=400)
         token_info = self._srv.token_manager.tokens[full_token]
+        old_name = token_info.get("name", "")
+        old_perms = token_info.get("permissions", [])
         if "name" in body:
             token_info["name"] = body["name"]
         if "permissions" in body:
             token_info["permissions"] = body["permissions"]
         self._srv.token_manager._save_tokens()
+
+        # Audit log for config change
+        client_ip, _ = self._srv._get_client_ip(request)
+        if "name" in body and body["name"] != old_name:
+            audit_log.admin_config_changed(
+                client_ip, f"token.{full_token[:12]}.name", old_name, body["name"]
+            )
+        if "permissions" in body and body["permissions"] != old_perms:
+            audit_log.admin_config_changed(
+                client_ip,
+                f"token.{full_token[:12]}.permissions",
+                old_perms,
+                body["permissions"],
+            )
+
         return web.json_response({"ok": True, "token": token_info})
 
     def register_routes(self, router):
@@ -79,6 +116,7 @@ class TokenAPI:
         router.add_get("/api/clients", self.list_clients)
         router.add_post("/api/clients/{client_id}/kick", self.kick_client)
         # Blocked IPs management
+        router.add_post("/api/blocked-ips", self.add_blocked_ip)
         router.add_get("/api/tokens/{token_id}/blocked-ips", self.list_blocked_ips)
         router.add_delete("/api/tokens/{token_id}/blocked-ips/{ip}", self.unblock_ip)
 
@@ -91,7 +129,12 @@ class TokenAPI:
                 meta = self._srv._client_meta.get(ws)
                 client_id = meta.get("client_id", "") if meta else ""
                 # Validate client_id is a proper string, not a WebSocket object repr
-                if not isinstance(client_id, str) or "WebSocketResponse" in client_id or "<" in client_id or ">" in client_id:
+                if (
+                    not isinstance(client_id, str)
+                    or "WebSocketResponse" in client_id
+                    or "<" in client_id
+                    or ">" in client_id
+                ):
                     client_id = ""
                 client_list.append(
                     {
@@ -109,7 +152,12 @@ class TokenAPI:
         client_id = request.match_info.get("client_id", "")
 
         # Validate client_id - reject WebSocket object repr strings
-        if not isinstance(client_id, str) or "WebSocketResponse" in client_id or "<" in client_id or ">" in client_id:
+        if (
+            not isinstance(client_id, str)
+            or "WebSocketResponse" in client_id
+            or "<" in client_id
+            or ">" in client_id
+        ):
             return web.json_response({"error": "Invalid client ID"}, status=400)
 
         # Find the client by ID
@@ -124,18 +172,8 @@ class TokenAPI:
                     ws_to_kick = ws
                     token_to_kick = self._srv._client_tokens.get(ws)
                     if meta:
-                        # Parse IP from stored format
                         ip_str = meta.get("ip", "")
-                        if ip_str.startswith("["):
-                            # Bracketed IPv6 with port: [::1]:8080 -> extract ::1
-                            bracket_end = ip_str.find("]")
-                            client_ip = ip_str[1:bracket_end] if bracket_end > 0 else ""
-                        elif ip_str.count(":") >= 2 or "%" in ip_str:
-                            # Bare IPv6 (no brackets): 2003:abc::1 or 2003:abc::1%eth0
-                            client_ip = ip_str.split("%")[0]  # strip zone index if present
-                        else:
-                            # IPv4 with optional port: 192.168.1.1:8080 -> extract 192.168.1.1
-                            client_ip = ip_str.split(":")[0] if ":" in ip_str else ip_str
+                        client_ip = extract_ip(ip_str)
                     break
 
         if ws_to_kick is None:
@@ -143,25 +181,39 @@ class TokenAPI:
 
         if token_to_kick is None or token_to_kick not in self._srv.token_manager.tokens:
             # Close without adding to block list
-            await ws_to_kick.close()
+            await ws_to_kick.close(
+                code=WS_CLOSE_KICKED, message=b"Disconnected by admin"
+            )
             return web.json_response(
                 {"ok": True, "message": "Client disconnected (no token)"}
             )
 
-        # Add client IP to token's block list
+        # Revoke the kicked client's token so they can't reconnect with it.
+        self._srv.token_manager.revoke(token_to_kick)
+
         if client_ip:
-            token_data = self._srv.token_manager.tokens[token_to_kick]
-            blocked_ips = token_data.get("blocked_ips", [])
-            if client_ip not in blocked_ips:
-                blocked_ips.append(client_ip)
-                token_data["blocked_ips"] = blocked_ips
-                self._srv.token_manager._save_tokens()
+            # Store blocked IP on a tombstone entry keyed by the revoked token for audit trail only.
+            self._srv.token_manager.tokens[token_to_kick] = {
+                "name": f"revoked-{client_id}",
+                "created": "",
+                "permissions": [],
+                "blocked_ips": [client_ip],
+            }
+            self._srv.token_manager._save_tokens()
 
         # Close the WebSocket connection
         try:
-            await ws_to_kick.close()
-        except Exception:
-            pass
+            await ws_to_kick.close(
+                code=WS_CLOSE_KICKED, message=b"Disconnected by admin"
+            )
+        except Exception as e:
+            log.debug("kick_client ws close failed: %s", e)
+
+        # Audit log: client kicked + IP blocked
+        kicker_ip, _ = self._srv._get_client_ip(request)
+        audit_log.client_kicked(client_ip, token_to_kick, kicker_ip, client_id)
+        if client_ip:
+            audit_log.ip_blocked(client_ip, token_to_kick, kicker_ip)
 
         return web.json_response(
             {
@@ -169,6 +221,25 @@ class TokenAPI:
                 "message": f"Client kicked, IP {client_ip} added to block list",
             }
         )
+
+    async def add_blocked_ip(self, request):
+        """Add an IP to the global block list (blocks all tokens for that IP)."""
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({"error": "Invalid JSON"}, status=400)
+        ip = (body or {}).get("ip", "").strip()
+        if not ip:
+            return web.json_response({"error": "IP is required"}, status=400)
+        if ip not in self._srv.token_manager.blocked_ips:
+            self._srv.token_manager.blocked_ips.append(ip)
+        self._srv.token_manager._save_tokens()
+
+        # Audit log
+        kicker_ip, _ = self._srv._get_client_ip(request)
+        audit_log.ip_blocked(ip, "manual", kicker_ip)
+
+        return web.json_response({"ok": True, "message": f"IP {ip} blocked"})
 
     async def list_blocked_ips(self, request):
         """Return blocked IPs for a token."""
@@ -192,4 +263,9 @@ class TokenAPI:
         blocked_ips.remove(ip)
         token_data["blocked_ips"] = blocked_ips
         self._srv.token_manager._save_tokens()
+
+        # Audit log
+        unblocker_ip, _ = self._srv._get_client_ip(request)
+        audit_log.ip_unblocked(ip, token_id, unblocker_ip)
+
         return web.json_response({"ok": True, "message": f"IP {ip} unblocked"})
