@@ -1,7 +1,10 @@
 """Terminal QR code display for quick mobile access."""
 
 import io as _io_mod
-from anywhereinput import safe_print, safe_print_stderr
+from anywhereinput.logging_config import get_logger
+from anywhereinput._safe_print import safe_print, safe_print_stderr
+
+log = get_logger(__name__)
 
 
 def display_qr(url: str, token: str) -> None:
@@ -21,7 +24,7 @@ def display_qr(url: str, token: str) -> None:
         qr.add_data(full_link)
         qr.make(fit=True)
 
-        # Render ASCII art to a string first, then pipe through safe_print.
+        # Render ASCII art to a string first, then pipe through log.
         # qrcode.print_ascii() writes directly to sys.stdout which bypasses
         # safe_print and can crash on Windows OEM codepages.
         ascii_buf = _io_mod.StringIO()
@@ -33,14 +36,17 @@ def display_qr(url: str, token: str) -> None:
         qr.print_ascii(**{param_name: ascii_buf}, invert=True)
         qr_text = ascii_buf.getvalue()
 
-        safe_print("\n" + "=" * 50)
+        safe_print()
+        safe_print("=" * 50)
         safe_print("SCAN QR CODE TO CONNECT")
         safe_print("=" * 50)
-        safe_print(qr_text)
+        safe_print(qr_text, end="")
         safe_print("=" * 50)
         safe_print(f"URL: {full_link}")
-        safe_print("=" * 50 + "\n")
+        safe_print("=" * 50)
+        safe_print()
     except Exception as e:
+        log.error("[QR] Could not display QR code: %s", e)
         safe_print_stderr(f"[QR] Could not display QR code: {e}")
         safe_print(f"URL: {full_link}")
 
@@ -59,6 +65,7 @@ def save_qr_image(url: str, filename: str = "qr_code.png") -> None:
 
         img = qr.make_image()
         img.save(filename)
-        safe_print(f"[QR] Saved to {filename}")
+        log.info("[QR] Saved to %s", filename)
     except Exception as e:
+        log.error("[QR] Could not save QR image: %s", e)
         safe_print_stderr(f"[QR] Could not save QR image: {e}")
