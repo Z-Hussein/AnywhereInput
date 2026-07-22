@@ -14,7 +14,18 @@ export class ScreenManager {
         this._lastFrameRenderTime = 0;
     }
 
-    onScreenFrame(base64Data) {
+    onScreenFrame(frameData) {
+        // Support both binary (Uint8Array/JPEG bytes) and base64 string
+        let imageSource;
+        if (frameData instanceof Uint8Array || ArrayBuffer.isView(frameData)) {
+            // Binary JPEG frame — fastest path, no decode needed
+            const blob = new Blob([frameData], { type: 'image/jpeg' });
+            imageSource = URL.createObjectURL(blob);
+        } else {
+            // Legacy base64 fallback
+            imageSource = 'data:image/jpeg;base64,' + frameData;
+        }
+
         // Update immediately - no frame skipping for lowest perceived latency
         const now = performance.now();
         if (this._lastFrameRenderTime && now - this._lastFrameRenderTime < 8) {
@@ -25,7 +36,7 @@ export class ScreenManager {
         // Direct assignment - fastest possible frame swap
         if (this.client.screenStatusOverlay) this.client.screenStatusOverlay.hide();
         if (this.client.els.screenContainer) this.client.els.screenContainer.style.opacity = '1';
-        this.client.els.screenStream.src = 'data:image/jpeg;base64,' + base64Data;
+        this.client.els.screenStream.src = imageSource;
         
         this.frameCount++;
 
@@ -50,7 +61,7 @@ export class ScreenManager {
                 this.client.els.screenStream.style.aspectRatio = `${this.screenWidth} / ${this.screenHeight}`;
             }
         } catch (e) {
-            console.log('Could not fetch screen info');
+            // silent failure
         }
     }
 
@@ -83,7 +94,7 @@ export class ScreenManager {
                 this.client.els.monitorSetting.style.display = 'none';
             }
         } catch (e) {
-            console.log('Could not fetch monitors');
+            // silent failure
         }
     }
 
@@ -103,7 +114,7 @@ export class ScreenManager {
                 this.client.showStatus('Failed to switch monitor', 'error');
             }
         } catch (e) {
-            console.log('Failed to set monitor');
+            // silent failure
             this.client.showStatus('Monitor switch failed', 'error');
         }
     }
