@@ -1,0 +1,8 @@
+[flake8]
+max-line-length = 120
+# W503: line break before binary operator (Black style)
+# E203: whitespace before ':' (Black slice style)
+# E402: module-level import not at top (intentional in some modules)
+# E501: line too long (handled by Black)
+# F811: redefinition of unused name (intentional for conditional imports)
+ignore = W503,E203,E402,E501,F811
