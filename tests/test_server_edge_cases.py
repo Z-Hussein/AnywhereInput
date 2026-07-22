@@ -21,7 +21,7 @@ def test_server_version_constant():
 
 def test_tunnel_choices():
     """TUNNEL_CHOICES must contain expected providers."""
-    from anywhereinput.server import TUNNEL_CHOICES
+    from anywhereinput.launcher import TUNNEL_CHOICES
 
     expected = {"cloudflare", "tailscale", "pinggy", "zrok2", "local"}
     assert set(TUNNEL_CHOICES) == expected
@@ -29,7 +29,7 @@ def test_tunnel_choices():
 
 def test_server_pyautogui_lock():
     """_pyautogui_lock should be a real threading.Lock."""
-    from anywhereinput.server import _pyautogui_lock
+    from anywhereinput.mouse_worker import _pyautogui_lock
 
     assert hasattr(_pyautogui_lock, 'acquire')
     assert hasattr(_pyautogui_lock, 'release')
@@ -39,7 +39,7 @@ def test_server_pyautogui_lock():
 
 def test_mouse_worker_engine_state_healthy():
     """MouseWorker reports 'healthy' when no consecutive failures."""
-    from anywhereinput.server import MouseWorker
+    from anywhereinput.mouse_worker import MouseWorker
 
     mw = MouseWorker()
     assert mw.consecutive_failures == 0
@@ -49,7 +49,7 @@ def test_mouse_worker_engine_state_healthy():
 
 def test_mouse_worker_engine_state_offline_threshold():
     """MouseWorker reports 'offline' after exceeding failure threshold."""
-    from anywhereinput.server import MouseWorker
+    from anywhereinput.mouse_worker import MouseWorker
 
     mw = MouseWorker()
     max_failures = mw.max_failures_before_offline
@@ -60,7 +60,7 @@ def test_mouse_worker_engine_state_offline_threshold():
 
 def test_mouse_worker_engine_state_recovering():
     """MouseWorker reports 'recovering' within backoff window."""
-    from anywhereinput.server import MouseWorker
+    from anywhereinput.mouse_worker import MouseWorker
 
     mw = MouseWorker()
     # Set failures just below offline threshold
@@ -74,7 +74,7 @@ def test_mouse_worker_engine_state_recovering():
 
 def test_mouse_worker_reset_recovery_timer():
     """A successful input should reset the recovery timer."""
-    from anywhereinput.server import MouseWorker
+    from anywhereinput.mouse_worker import MouseWorker
 
     mw = MouseWorker()
     import time
@@ -87,7 +87,7 @@ def test_mouse_worker_reset_recovery_timer():
 
 def test_mouse_worker_queue_max_size():
     """MouseWorker queue has the expected max size."""
-    from anywhereinput.server import MouseWorker
+    from anywhereinput.mouse_worker import MouseWorker
 
     mw = MouseWorker()
     assert mw.queue.maxsize == 100
@@ -96,20 +96,24 @@ def test_mouse_worker_queue_max_size():
 
 # ─── Server argument parsing ────────────────────────────────────────────────
 
-def test_server_main_has_help():
-    """server.py --help should not crash."""
-    from anywhereinput.server import main
+def test_server_main_has_help(capsys):
+    """launcher.py --help should not crash."""
+    import sys
+    from anywhereinput.launcher import main
 
+    old_argv = sys.argv[:]
+    sys.argv = ["anywhereinput", "--help"]
     try:
-        main()
-    except SystemExit as e:
-        # argparse exits with 0 on --help, 2 on error
-        assert e.code in (0, 2)
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 0
+    finally:
+        sys.argv = old_argv
 
 
 def test_server_tunnel_choices_arg():
     """argparse accepts valid tunnel choices."""
-    from anywhereinput.server import TUNNEL_CHOICES
+    from anywhereinput.launcher import TUNNEL_CHOICES
 
     for choice in TUNNEL_CHOICES:
         assert isinstance(choice, str)
@@ -177,7 +181,7 @@ async def test_server_static_file_404():
 
 def test_main_argparse_tunnel_local():
     """argparse accepts valid tunnel choices."""
-    from anywhereinput.server import TUNNEL_CHOICES
+    from anywhereinput.launcher import TUNNEL_CHOICES
 
     import argparse
     parser = argparse.ArgumentParser()
@@ -188,7 +192,7 @@ def test_main_argparse_tunnel_local():
 
 def test_main_argparse_tunnel_cloudflare():
     """argparse accepts cloudflare tunnel."""
-    from anywhereinput.server import TUNNEL_CHOICES
+    from anywhereinput.launcher import TUNNEL_CHOICES
 
     import argparse
     parser = argparse.ArgumentParser()
@@ -197,9 +201,9 @@ def test_main_argparse_tunnel_cloudflare():
     assert args.tunnel == "cloudflare"
 
 
-def test_server_module_has_logger():
-    """server.py has a module-level logger."""
-    from anywhereinput import server as srv_mod
+def test_server_core_module_has_logger():
+    """server_core.py has a module-level logger."""
+    from anywhereinput.server import server_core as srv_mod
     assert hasattr(srv_mod, 'logger')
     assert srv_mod.logger is not None
 
