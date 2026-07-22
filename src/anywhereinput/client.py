@@ -30,7 +30,12 @@ class ClientHandler:
         filename = request.match_info.get("filename", "")
 
         # Reject empty filename or paths with directory traversal attempts
-        if not filename or ".." in filename or filename.startswith("/") or "\\" in filename:
+        if (
+            not filename
+            or ".." in filename
+            or filename.startswith("/")
+            or "\\" in filename
+        ):
             return web.Response(text="Forbidden", status=403)
 
         # Normalize the path and ensure it's contained within the static directory.
