@@ -3,7 +3,7 @@
 <!-- Animated Header -->
 <img src="https://capsule-render.vercel.app/api?type=waving&color=0:667eea,100:764ba2&height=200&section=header&text=AnywhereInput&fontSize=70&fontColor=ffffff&animation=fadeIn&fontAlignY=35" alt="AnywhereInput" />
 
-<h3 align="center">🖱️ Control Your PC From Any Browser - No Install, No Account, No Cloud</h3>
+<h3 align="center">🖱️ Control Your PC From Any Browser - No Install, No Account, No headache</h3>
 
 <p align="center">
   <a href="https://www.anywhereinput.com">🌐 Website</a> •
