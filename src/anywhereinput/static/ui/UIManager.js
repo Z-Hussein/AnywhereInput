@@ -38,7 +38,9 @@ export class UIManager {
             watchModeBtn: document.getElementById('btn-watch-mode'),
         };
         for (const key in this.client.els) {
-            if (!this.client.els[key]) console.warn(`Element not found: ${key}`);
+            if (!this.client.els[key]) {
+                // Element not found, but continue silently
+            }
         }
     }
 
