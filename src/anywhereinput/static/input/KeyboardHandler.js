@@ -62,7 +62,6 @@ export class KeyboardHandler {
             setTimeout(() => { btn.dataset.fired = ''; }, 200);
             this._clearInput();
             const keys = btn.dataset.keys;
-            console.log(`[Hotkey] Sending: ${keys}`);
             this.client.sendHotkey(keys);
             btn.style.opacity = '0.7';
             setTimeout(() => { btn.style.opacity = '1'; }, 100);
