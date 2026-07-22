@@ -2,9 +2,10 @@
 
 ## Token Authentication
 - A new 32-character random token is generated on every server start
-- Tokens are stored in `trusted_tokens.json` (included in `.gitignore` by default)
-- Press **`n`** then Enter to rotate tokens instantly - all existing connections are dropped and a new token is generated
-- Each connected WebSocket tracks its authenticated token; permissions are enforced on **every** guarded input message (`move`, `click`, `scroll`, `key`, `hotkey`, `screen_toggle`, etc.)
+- All previous tokens are **cleared on startup** — zero-trust, fresh session every restart
+- Press **`n`** to rotate tokens instantly — a new token is generated (pressing `Enter` is not required)
+- New tokens can also be triggered at runtime by setting the environment variable `AITOKEN_ROTATE=1` on any node running the server
+- Multiple tokens can coexist simultaneously — rotation does **not** revoke existing tokens
 
 ## Per-Token Permissions
 Each token carries a list of allowed input types:
@@ -22,6 +23,43 @@ Create restricted tokens via:
 ## IP Allowlist
 Tokens can be restricted to specific IPs or CIDR ranges via the admin app or token API. Empty allowlist = allow all.
 
+## Rate Limiting
+Built-in per-IP rate limiting protects against brute-force attacks:
+
+| Endpoint | Limit | Window | Burst |
+|----------|-------|--------|-------|
+| WebSocket auth (`/ws`) | 10 requests | 1 second | +5 (effective: 15) |
+| Token creation (`/api/tokens`) | 5 requests | 10 seconds | — |
+| General API (`/api/*`) | 30 requests | 1 second | +10 (effective: 40) |
+
+- **Localhost excluded** — `127.0.0.1`, `::1`, and `localhost` are never rate-limited
+- **Static files excluded** — `/favicon.ico` and `/static/` paths bypass rate limiting
+- Returns HTTP 429 with `Retry-After` header when exceeded
+
+## Audit Logging
+All security-relevant events are logged to `logs/audit.log` (JSON-lines, rotating 5MB × 10 files):
+
+| Event | What's Logged |
+|-------|---------------|
+| `token.created` | Token prefix, name, permissions, allowed_ips, creator IP |
+| `token.revoked` | Token prefix, revoker IP, reason |
+| `token.rotated` | Old/new token prefix, rotator IP |
+| `token.validated` | Token prefix, client IP, success/failure |
+| `client.connected` | Client IP, token prefix, client ID |
+| `client.disconnected` | Client IP, token prefix, reason |
+| `client.kicked` | Target IP, kicker IP, client ID |
+| `ip.blocked` | Blocked IP, blocker IP |
+| `ip.unblocked` | Unblocked IP, unblocker IP |
+| `connection.requested` | Client name, client IP, request ID |
+| `connection.approved` | Request ID, approver IP, token prefix |
+| `connection.declined` | Request ID, decliner IP |
+| `admin.config_changed` | Setting name, old/new value, admin IP |
+
+View audit logs:
+```bash
+tail -f logs/audit.log | python3 -m json.tool
+```
+
 ## HTTPS / WSS Encryption
 All tunnel providers provide HTTPS automatically:
 | Tunnel | Encryption |
@@ -34,9 +72,8 @@ All tunnel providers provide HTTPS automatically:
 **Local-only mode (option 6) has NO encryption.** If you need to use it, wrap it behind a reverse proxy or SSH tunnel.
 
 ## Known Limitations
-- **Single active token per session** - token rotation invalidates all previous tokens
-- No built-in rate limiting on incoming connections
-- No audit logging of who connected and what commands were sent
+- **Rate limiting is per-IP** — shared NAT/VPN IPs share the same bucket
+- Audit log rotates at 5MB × 10 files (50MB max)
 
 ## Hardening Recommendations
 
@@ -48,7 +85,7 @@ All tunnel providers provide HTTPS automatically:
 Add nginx/traefik in front of the server for:
 - **OAuth2 authentication** - require login before reaching AnywhereInput
 - **mTLS client certificates** - only authenticated clients can connect
-- **Rate limiting** - prevent brute-force on the token endpoint
+- **Additional rate limiting** - for stricter limits beyond built-in defaults
 
 Example nginx snippet:
 ```nginx
@@ -68,5 +105,5 @@ location / {
 - Use per-token permissions to restrict what restricted devices can do
 - Use IP allowlists to limit which networks each token can connect from
 - Never expose port 8008 directly to the internet without authentication
-- Use strong tunnel URLs
-- Monitor `trusted_tokens.json` for unexpected tokens
+- Monitor `logs/audit.log` for suspicious activity
+- Check blocked IPs via admin app token editor
