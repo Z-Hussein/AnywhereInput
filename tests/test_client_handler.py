@@ -21,7 +21,7 @@ def test_index_file_exists(handler):
 
 
 def test_static_css_exists(handler):
-    css_file = handler.static_dir / "style.css"
+    css_file = handler.static_dir / "base.css"
     assert css_file.exists()
 
 
@@ -38,7 +38,7 @@ def test_index_content_not_empty(handler):
 
 
 def test_all_static_files_present(handler):
-    expected = ["client.html", "app.js", "style.css"]
+    expected = ["client.html", "app.js", "base.css", "stream.css", "controls.css", "components.css"]
     for fname in expected:
         fpath = handler.static_dir / fname
         assert fpath.exists(), f"{fname} not found in {handler.static_dir}"
