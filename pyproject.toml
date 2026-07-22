@@ -26,8 +26,8 @@ classifiers = [
 requires-python = ">=3.9"
 dependencies = [
     "pyautogui>=0.9.54",
-    "aiohttp>=3.14.1",
-    "PyYAML>=6.0",
+    "aiohttp>=3.14.2",
+    "PyYAML>=6.0.3",
     "requests>=2.34.2",
     "qrcode[pil]>=8.2",
     "mss>=10.2.0",
@@ -43,7 +43,7 @@ dev = [
     "pytest-asyncio>=1.4.0",
     "black>=26.5.1",
     "flake8>=7.3.0",
-    "mypy>=2.1.0",
+    "mypy>=2.3.0",
 ]
 
 [tool.pytest.ini_options]
