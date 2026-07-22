@@ -370,7 +370,6 @@ def test_admin_app_qt_not_available_stubs():
         QT_AVAILABLE,
         ServerProcessWorker,
         TokenStore,
-        EngineStatusWidget,
         TokenManagerDialog,
         ClientListDialog,
         SettingsPanel,
@@ -381,7 +380,6 @@ def test_admin_app_qt_not_available_stubs():
     if not QT_AVAILABLE:
         assert ServerProcessWorker is None
         assert TokenStore is not None  # TokenStore is always real (pure Python)
-        assert EngineStatusWidget is None
         assert TokenManagerDialog is None
         assert ClientListDialog is None
         assert SettingsPanel is None
@@ -396,7 +394,7 @@ def test_run_admin_app_quits_without_qt():
     if QT_AVAILABLE:
         pytest.skip("Qt is available in this environment")
 
-    with mock.patch("anywhereinput.admin.safe_print_stderr"):
+    with mock.patch("anywhereinput.safe_print_stderr"):
         with mock.patch("sys.exit", side_effect=SystemExit(1)) as mock_exit:
             try:
                 run_admin_app()
