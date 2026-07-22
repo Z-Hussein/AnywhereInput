@@ -1,16 +1,14 @@
-# AnywhereInput Reference Configuration — NOT LOADED AT RUNTIME
+# AnywhereInput Reference Configuration
 #
-# This file is FOR REFERENCE ONLY — it shows all available configuration options.
-# These settings are NOT loaded by the server at startup.
+# This file shows all available configuration options.
+# It IS loaded at startup as project defaults.
+# CLI flags (--fps, --quality, etc.) override these values.
+# For user-specific overrides, create config/local_settings.yaml (gitignored).
 #
 # To configure the server, use ONE of these methods:
-#   1. CLI flags:  anywhereinput --fps 120 --quality 40 --scale 0.7 --port 8008
-#   2. Admin GUI:  anywhereinput --app  → Settings tab
-#
-# The server reads configuration ONLY from CLI arguments.
-# Creating config/local_settings.yaml will NOT be read (not implemented).
-# AnywhereInput Default Configuration
-# Override by creating config/local_settings.yaml (gitignored)
+#   1. Edit this file directly (or copy to local_settings.yaml)
+#   2. CLI flags:  anywhereinput --fps 120 --quality 40 --scale 0.7 --port 8008
+#   3. Admin GUI:  anywhereinput --app  → Settings tab
 
 server:
   host: "0.0.0.0"
@@ -19,9 +17,9 @@ server:
 
 screen_capture:
   enabled: true
-  fps: 10
-  quality: 60
-  scale: 0.5
+  fps: 120
+  quality: 40
+  scale: 0.7
   show_cursor: true
 
 auth:
@@ -30,7 +28,7 @@ auth:
   auto_generate: true
 
 mouse:
-  sensitivity: 1.0
+  sensitivity: 1.5
   acceleration: false
 
 tunnels:
@@ -42,6 +40,7 @@ tunnels:
     ssh_port: 443
   zrok2:
     auto_enable: true
+
 logging:
   level: "INFO"
   format: "%(asctime)s [%(levelname)s] %(message)s"
