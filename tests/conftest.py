@@ -130,10 +130,65 @@ _si = types.ModuleType('screeninfo')
 _si.get_monitors = lambda: [_Mon()]
 sys.modules['screeninfo'] = _si
 
-# ═══ Fixtures ──────────────────────────────────────────────────────────────
-
+# ═══ Redirect logging to temp directory during tests ═══════════════════════
+import logging
+import logging.handlers
+import tempfile
+import shutil
+from unittest.mock import patch
 import socket
 import pytest
+
+_test_log_dir = None
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _redirect_logging_to_tmpdir():
+    """Redirect all file logging to a temp directory so tests don't pollute logs/."""
+    global _test_log_dir
+    _test_log_dir = tempfile.mkdtemp(prefix="anywhereinput_test_logs_")
+
+    from anywhereinput import logging_config
+
+    original_get_log_dir = logging_config.get_log_dir
+
+    def _test_get_log_dir():
+        from pathlib import Path
+        return Path(_test_log_dir)
+
+    with patch.object(logging_config, "get_log_dir", _test_get_log_dir):
+        # Reset root logger handlers so they point to the temp dir
+        root = logging.getLogger()
+        for handler in root.handlers[:]:
+            if isinstance(handler, logging.handlers.RotatingFileHandler):
+                root.removeHandler(handler)
+                handler.close()
+
+        # Add fresh file handler pointing to temp dir
+        log_path = Path(_test_log_dir) / "anywhereinput.log"
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_path, maxBytes=10 * 1024 * 1024, backupCount=2, encoding="utf-8"
+        )
+        file_handler.setLevel(logging.DEBUG)
+        fmt = logging.Formatter(
+            fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        file_handler.setFormatter(fmt)
+        root.addHandler(file_handler)
+
+        yield
+
+    # Cleanup: close temp handlers, remove temp dir
+    for handler in root.handlers[:]:
+        if isinstance(handler, logging.handlers.RotatingFileHandler):
+            root.removeHandler(handler)
+            handler.close()
+    shutil.rmtree(_test_log_dir, ignore_errors=True)
+    _test_log_dir = None
+
+
+# ═══ Fixtures ──────────────────────────────────────────────────────────────
 
 
 @pytest.fixture
