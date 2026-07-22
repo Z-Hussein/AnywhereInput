@@ -31,7 +31,7 @@
 | **Adaptive Streaming** | Per-client backpressure (skip frames for slow clients), auto-reduce FPS when frames delayed, slow recovery. |
 | **Real-Time FPS & Bandwidth Metrics** | Engine status API (`/api/engine`) now returns live FPS estimate (moving average over last 5s) and bandwidth consumption (bytes/sec sent to clients). Admin dashboard top bar displays both values. |
 | **Global IP Blocking via TokenManager** | Dedicated `POST /api/blocked-ips` endpoint adds IPs to `TokenManager.blocked_ips`, blocking all connections from that IP regardless of token. Separate from per-token allow/block lists. |
-| **295 Tests** | 6 new test files covering capture modes, rate limiter, logging config, screen capture utils, token handlers, request handlers, CLI arg parsing. Zero failures. |
+| **328 Tests** | 6 new test files covering capture modes, rate limiter, logging config, screen capture utils, token handlers, request handlers, CLI arg parsing. Zero failures. |
 
 ### 🔒 Security
 
