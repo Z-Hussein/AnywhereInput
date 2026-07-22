@@ -39,7 +39,7 @@ export class ViewportManager {
             this.client.els.serverUrl.value = window.location.hostname;
         }
 
-        if (queryToken) {
+        if (queryToken && !this.client.els.accessToken.value) {
             this.client.els.accessToken.value = queryToken;
         }
 
@@ -54,8 +54,11 @@ export class ViewportManager {
             }, 100);
         }
 
-        // Auto-connect if both URL and token are available
-        if (this.client.els.serverUrl.value && this.client.els.accessToken.value) {
+        // Only auto-connect if the token came from a fresh URL load
+        // (not an existing approval popup or manual fill). Check that
+        // no approval message is visible - meaning this is a genuine first-load.
+        const hasApprovalMsg = document.getElementById('approval-msg')?.style.display !== 'none';
+        if (queryToken && this.client.els.serverUrl.value && !hasApprovalMsg) {
             setTimeout(() => {
                 this.client.connect();
             }, 500);
