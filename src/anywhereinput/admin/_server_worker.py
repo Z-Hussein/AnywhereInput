@@ -2,10 +2,15 @@
 
 import os
 import subprocess
-import sys
 import threading
 from typing import Optional
 
+from anywhereinput._constants import (
+    DEFAULT_PORT,
+    DEFAULT_FPS,
+    DEFAULT_QUALITY,
+    DEFAULT_SCALE,
+)
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from ._utils import _PROJECT_ROOT
@@ -19,11 +24,11 @@ class ServerProcessWorker(QThread):
 
     def __init__(
         self,
-        port: int = 8008,
+        port: int = DEFAULT_PORT,
         tunnel: str = "local",
-        fps: int = 30,
-        quality: int = 85,
-        scale: float = 1.0,
+        fps: int = DEFAULT_FPS,
+        quality: int = DEFAULT_QUALITY,
+        scale: float = DEFAULT_SCALE,
     ):
         super().__init__()
         self._port = port
@@ -31,13 +36,11 @@ class ServerProcessWorker(QThread):
         self._fps = fps
         self._quality = quality
         self._scale = scale
+        self._proc: Optional[subprocess.Popen[str]] = None
         self._running = False
-        self._proc: Optional[subprocess.Popen] = None  # type: ignore[type-arg]
 
     def run(self) -> None:
         cmd = [
-            sys.executable,
-            "-m",
             "anywhereinput",
             "--tunnel",
             self._tunnel,
@@ -51,6 +54,8 @@ class ServerProcessWorker(QThread):
             str(self._quality),
             "--scale",
             str(self._scale),
+            "--log-level",
+            "INFO",
         ]
         cmd_str = " ".join(cmd)
         self.log_signal.emit(f"[CMD] {cmd_str}")
@@ -93,9 +98,18 @@ class ServerProcessWorker(QThread):
         if self._proc and self._proc.poll() is None:
             self._proc.terminate()
             try:
-                self._proc.wait(timeout=5)
+                self._proc.wait(timeout=3)
             except subprocess.TimeoutExpired:
                 self._proc.kill()
+                try:
+                    self._proc.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    pass
+            if self._proc.stdout:
+                try:
+                    self._proc.stdout.close()
+                except Exception:
+                    pass
         self._running = False
 
     @property
