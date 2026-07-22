@@ -1,19 +1,56 @@
 """Info/Guide panel - app documentation and quick reference."""
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
     QTextEdit,
+    QWidget,
+    QVBoxLayout,
 )
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QTextCursor
 
 
-class InfoPanel(QTextEdit):
-    """Scrollable info panel with app documentation."""
+class SearchLineEdit(QLineEdit):
+    """QLineEdit that handles Enter key without propagating to parent dialog."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setReadOnly(True)
-        self.setFont(QFont("Sans", 10))
-        self.setStyleSheet("""
+        self._on_enter = None
+
+    def set_enter_callback(self, callback):
+        self._on_enter = callback
+
+    def keyPressEvent(self, event):  # type: ignore[override]
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            if self._on_enter:
+                self._on_enter()
+            return
+        super().keyPressEvent(event)
+
+
+class InfoPanel(QWidget):
+    """Scrollable info panel with app documentation and search."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        search_layout = QHBoxLayout()
+        search_layout.addWidget(QLabel("🔍"))
+        self.search_input = SearchLineEdit()
+        self.search_input.setPlaceholderText("Search guide... (Enter for next)")
+        self.search_input.textChanged.connect(self._search)
+        self.search_input.set_enter_callback(self._find_next)
+        search_layout.addWidget(self.search_input)
+        layout.addLayout(search_layout)
+
+        self.text_edit = QTextEdit()
+        self.text_edit.setReadOnly(True)
+        self.text_edit.setFont(QFont("Sans", 10))
+        self.text_edit.setStyleSheet("""
             QTextEdit {
                 background: #1a1f2e;
                 border: 1px solid #2d3748;
@@ -21,7 +58,22 @@ class InfoPanel(QTextEdit):
                 padding: 4px;
             }
         """)
+        layout.addWidget(self.text_edit)
         self._build_content()
+
+    def _search(self, text: str):
+        """Highlight search matches in the document."""
+        cursor = self.text_edit.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.Start)
+        self.text_edit.setTextCursor(cursor)
+        if text:
+            self.text_edit.find(text)
+
+    def _find_next(self):
+        """Move to the next matching result."""
+        text = self.search_input.text()
+        if text:
+            self.text_edit.find(text)
 
     def _build_content(self):
         sections = [
@@ -137,7 +189,6 @@ class InfoPanel(QTextEdit):
                 f'<div class="divider">── · ──</div><h3>{title}</h3><p>{body}</p>'
             )
 
-        # Hotkey reference table
         hotkeys = [
             ("Ctrl + C", "Copy"),
             ("Ctrl + X", "Cut"),
@@ -176,6 +227,7 @@ class InfoPanel(QTextEdit):
         th_style = "padding:6px 10px;text-align:left;color:#94a3b8;font-size:12px;border-bottom:2px solid #4a5568;"
         td_code_style = "background:#1e293b;padding:2px 6px;border-radius:3px;font-family:monospace;"
 
+        content += '<table style="width:100%;border-collapse:collapse;">'
         hdr = (
             f'<tr style="background:#2d3748;">'
             f'<th style="{th_style}">Shortcut</th>'
@@ -196,5 +248,5 @@ class InfoPanel(QTextEdit):
         content += "</table>"
 
         content += "</body></html>"
-        self.setHtml(content)
-        self.verticalScrollBar().setValue(0)
+        self.text_edit.setHtml(content)
+        self.text_edit.verticalScrollBar().setValue(0)
