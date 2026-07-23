@@ -2,8 +2,20 @@
 
 import sys as _sys
 
-from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
-from PyQt6.QtGui import QIcon, QPalette, QColor
+try:
+    from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
+    from PyQt6.QtGui import QIcon, QPalette, QColor
+    from PyQt6.QtCore import Qt
+    QT_AVAILABLE = True
+except ImportError:
+    QT_AVAILABLE = False
+    QApplication = None  # type: ignore
+    QSystemTrayIcon = None  # type: ignore
+    QMenu = None  # type: ignore
+    QIcon = None  # type: ignore
+    QPalette = None  # type: ignore
+    QColor = None  # type: ignore
+    Qt = None  # type: ignore
 
 from ._utils import is_first_run, mark_setup_completed
 
@@ -30,22 +42,14 @@ def _cleanup_and_quit(window, tray_icon=None):
 
 def run_admin_app():
     """Entry point for `anywhereinput --app`."""
-    try:
+    if not QT_AVAILABLE:
+        from anywhereinput.logging_config import get_logger
+        get_logger(__name__).error("PyQt6 required for admin app. Install via: pip install anywhereinput[app]")
+        return
+
     from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
     from PyQt6.QtGui import QIcon, QAction
     from PyQt6.QtCore import Qt, QThread, pyqtSignal
-    QT_AVAILABLE = True
-except ImportError:
-    QT_AVAILABLE = False
-    # Dummy placeholders so the module loads without PyQt6
-    QApplication = None  # type: ignore
-    QSystemTrayIcon = None  # type: ignore
-    QMenu = None  # type: ignore
-    QIcon = None  # type: ignore
-    QAction = None  # type: ignore
-    Qt = None  # type: ignore
-    QThread = None  # type: ignore
-    pyqtSignal = None  # type: ignore
 
     from ._main_window import MainWindow, _get_icon_path
 
