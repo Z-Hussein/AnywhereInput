@@ -252,6 +252,8 @@ class TokenAPI:
 
     async def unblock_ip(self, request):
         """Remove an IP from a token's block list."""
+if not self._require_localhost(request):
+            return web.json_response({"error": "unauthorized"}, status=403)
         token_id = request.match_info.get("token_id", "")
         ip = request.match_info.get("ip", "")
         if token_id not in self._srv.token_manager.tokens:
