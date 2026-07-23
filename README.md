@@ -30,7 +30,14 @@
   <a href="#">
     <img src="https://img.shields.io/badge/Stars-%E2%AD%90%20Star%20Us-yellow?style=for-the-badge&logo=github&logoColor=white" alt="Star Us" />
   </a>
-<noscript><a href="https://liberapay.com/z-hussein/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></noscript>
+<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+  <a href="https://www.buymeacoffee.com/z.hussein" target="_blank">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Donate using Buy Me a Coffee" style="width: 180px !important;">
+  </a>
+  <a href="https://liberapay.com/z-hussein/donate" target="_blank">
+    <img src="https://liberapay.com/assets/widgets/donate.svg" alt="Donate using Liberapay">
+  </a>
+</div>
 </p>
 
 <!-- Animated Typing -->
