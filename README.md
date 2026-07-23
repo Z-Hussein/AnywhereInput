@@ -30,14 +30,17 @@
   <a href="#">
     <img src="https://img.shields.io/badge/Stars-%E2%AD%90%20Star%20Us-yellow?style=for-the-badge&logo=github&logoColor=white" alt="Star Us" />
   </a>
-<div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+<div align="center">
+
+<p style="margin-top: 12px; font-size: 14px;">If this project helps you, consider supporting it:</p>
+<div style="display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 8px;">
   <a href="https://www.buymeacoffee.com/z.hussein" target="_blank">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Donate using Buy Me a Coffee" style='border:0px;height:36px;'>
-  </a>
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="border:0;height:38px;"></a>
   <a href="https://liberapay.com/z-hussein/donate" target="_blank">
-    <img src="https://liberapay.com/assets/widgets/donate.svg" alt="Donate using Liberapay" style='border:0px;height:36px;'>
-  </a>
-<a href='https://ko-fi.com/E6D223QDRL' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+    <img src="https://liberapay.com/assets/widgets/donate.svg" alt="Donate via Liberapay" style="border:0;height:38px;"></a>
+  <a href='https://ko-fi.com/E6D223QDRL' target='_blank'><img height='36' style='border:0px;height:38px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+</div>
+
 </div>
 </p>
 
