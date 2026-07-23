@@ -186,6 +186,8 @@ class RequestAPI:
 
     async def decline_request(self, request):
         """Decline a pending connection request."""
+if not self._require_localhost(request):
+            return web.json_response({"error": "unauthorized"}, status=403)
         req_id = request.match_info.get("request_id", "")
         if req_id not in _connection_requests:
             return web.json_response({"error": "Request not found"}, status=404)
