@@ -243,6 +243,8 @@ class TokenAPI:
 
     async def list_blocked_ips(self, request):
         """Return blocked IPs for a token."""
+if not self._require_localhost(request):
+            return web.json_response({"error": "unauthorized"}, status=403)
         token_id = request.match_info.get("token_id", "")
         if token_id not in self._srv.token_manager.tokens:
             return web.json_response({"error": "Token not found"}, status=404)
