@@ -30,7 +30,6 @@
   <a href="#">
     <img src="https://img.shields.io/badge/Stars-%E2%AD%90%20Star%20Us-yellow?style=for-the-badge&logo=github&logoColor=white" alt="Star Us" />
   </a>
-  <script src="https://liberapay.com/z-hussein/widgets/button.js"></script>
 <noscript><a href="https://liberapay.com/z-hussein/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></noscript>
 </p>
 
