@@ -4,14 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "anywhereinput"
-version = "1.3.0"
-description = "Remote control your PC from any browser."
-readme = "README-pypi.md"
-license = "MIT"
+version = "1.3.1"
+description = "Browser-based PC control - turn any device with a web browser into a remote mouse, keyboard & screen for your computer. No install, no account, zero friction. Works over LAN or tunnel. Python + WebSocket."
 authors = [
     {name = "Z-Hussein"}
 ]
-keywords = ["remote-control", "screen-sharing", "websocket", "remote-desktop", "cross-platform"]
+keywords = ["remote-desktop", "browser-remote-control", "screen-sharing", "no-install-remote-access", "python", "websocket", "remote-mouse-keyboard", "cloudflare-tunnel", "tailscale", "cross-platform", "open-source", "self-hosted", "linux", "windows", "macos", "monitor-streaming", "input-relay"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: End Users/Desktop",
