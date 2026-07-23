@@ -26,7 +26,7 @@ def _make_request(method="GET", path="/api/requests", body=None, match_info=None
 def request_api():
     srv = mock.MagicMock()
     srv.token_manager.generate_token.return_value = "autotoken123"
-    srv._get_client_ip.return_value = ("1.2.3.4", 12345)
+    srv._get_client_ip.return_value = ("127.0.0.1", 12345)
     return RequestAPI(srv)
 
 
