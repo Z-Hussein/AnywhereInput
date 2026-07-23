@@ -37,9 +37,7 @@
   <a href="https://liberapay.com/z-hussein/donate" target="_blank">
     <img src="https://liberapay.com/assets/widgets/donate.svg" alt="Donate using Liberapay">
   </a>
-  <a href="https://ko-fi.com/zeyhussein" target="_blank">
-  <img src="https://storage.ko-fi.com/cdn/badge2.png?v=6" alt="Support me on Ko-fi">
-</a>
+<a href='https://ko-fi.com/E6D223QDRL' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 </div>
 </p>
 
