@@ -38,7 +38,7 @@
     <img src="https://liberapay.com/assets/widgets/donate.svg" alt="Donate using Liberapay">
   </a>
   <a href="https://ko-fi.com/zeyhussein" target="_blank">
-  <img src="https://storage.ko-fi.com/cdn/badge2.png?v=6" alt="Support me on Ko-fi" style="width: 150px;">
+  <img src="https://storage.ko-fi.com/cdn/badge2.png?v=6" alt="Support me on Ko-fi">
 </a>
 </div>
 </p>
