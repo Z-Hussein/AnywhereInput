@@ -32,10 +32,10 @@
   </a>
 <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
   <a href="https://www.buymeacoffee.com/z.hussein" target="_blank">
-    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Donate using Buy Me a Coffee">
+    <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Donate using Buy Me a Coffee" style='border:0px;height:36px;'>
   </a>
   <a href="https://liberapay.com/z-hussein/donate" target="_blank">
-    <img src="https://liberapay.com/assets/widgets/donate.svg" alt="Donate using Liberapay">
+    <img src="https://liberapay.com/assets/widgets/donate.svg" alt="Donate using Liberapay" style='border:0px;height:36px;'>
   </a>
 <a href='https://ko-fi.com/E6D223QDRL' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 </div>
