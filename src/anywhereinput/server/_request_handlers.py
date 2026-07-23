@@ -62,6 +62,8 @@ class RequestAPI:
 
     async def list_requests(self, request):
         """Return all connection requests (admin endpoint)."""
+if not self._require_localhost(request):
+            return web.json_response({"error": "unauthorized"}, status=403)
         now = time.monotonic()
         results = []
         for req_id, info in list(_connection_requests.items()):
@@ -86,6 +88,8 @@ class RequestAPI:
 
     async def approve_request(self, request):
         """Approve a pending connection request."""
+if not self._require_localhost(request):
+            return web.json_response({"error": "unauthorized"}, status=403)
         req_id = request.match_info.get("request_id", "")
         if req_id not in _connection_requests:
             return web.json_response({"error": "Request not found"}, status=404)
