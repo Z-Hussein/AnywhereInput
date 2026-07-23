@@ -519,6 +519,42 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ---
 
+## 🔍 Compared To Other Remote Control Tools
+
+This isn't a rival to those tools — it solves a different problem.
+
+| | **AnywhereInput** | **TeamViewer** | **Chrome Remote Desktop** | **Sunshine/Moonlight** | **Parsec** | **RustDesk** | **VNC (any)** |
+|---|---|---|---|---|---|---|---|
+| Client install | ❌ Browser only | ✅ Both sides | ✅ Browser (but Chrome required) | ✅ Both sides | ✅ Both sides + account | ✅ Both sides | ✅ Both sides |
+| Account needed | ❌ No | ✅ Yes | ✅ Google account | ❌ Optional | ✅ Yes | ✅ Yes (default) | ❌ Optional |
+| Setup time | ~30 seconds | 2-5 min | 1-2 min | 10+ min (config, ports) | 3-5 min | 5-10 min | 10+ min (config, ports) |
+| Latency | Good (~50-150ms) | OK (~100-300ms) | OK (~80-200ms) | Excellent (<20ms) | Excellent (<30ms) | OK (~100-400ms) | OK (~100-300ms) |
+| Best for | Quick remote control from anywhere | Support/business | Simple Chrome-based access | Gaming, full remote desktop | Gaming, creative work remotely | Self-hosted open-source RDP | Legacy/technical use |
+| Audio forwarding | ❌ No | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | ❌ No (usually) |
+| Open source | ✅ Yes | ❌ No | ✅ Yes (partial) | ✅ Yes | ❌ No | ✅ Yes | ✅ Yes |
+| Built-in tunnels | ✅ Cloudflare/Tailscale/Pinggy/Zrok2 | ✅ TeamViewer network | ✅ Google infrastructure | Manual (port forward / Tailscale) | ✅ Parsec network | ✅ Relay / Direct | Manual (port forward) |
+| Public computer use | ✅ Works instantly | ❌ Requires install | ✅ Browser only | ❌ Requires install | ❌ Requires install | ❌ Requires install | ❌ Requires install |
+| Privacy/OSINT concerns | ❌ None | ⚠️ Known tracking/phone-home | ⚠️ Google ecosystem lock-in | ❌ None | ❌ None | ❌ None | ❌ None |
+
+**Where AnywhereInput wins:**
+- Zero client install — anyone with a browser can connect
+- No accounts, no signup walls, no OSINT / phone-home concerns
+- Lightweight — single pip install, no daemon services running in the background
+- Built-in tunnel providers (Cloudflare/Tailscale/Pinggy/Zrok2) — no port forwarding headaches
+- Works on any device that runs a browser — phones, tablets, public computers, library PCs
+- Great for "I need to poke at my desktop for 5 minutes from the couch"
+
+**Where other tools win:**
+- **Sunshine/Moonlight/Parsec** — latency and video quality (optimized codecs vs JPEG streaming)
+- **TeamViewer/RustDesk** — remote support workflows (file transfer, session recording, multi-user)
+- **Chrome Remote Desktop** — simplest quick setup if you're already in the Google ecosystem
+- **VNC** — legacy compatibility, raw protocol access, headless server environments
+- **Full remote desktop workflows over long sessions** across all of them
+
+**TL;DR:** AnywhereInput fills a gap none of these tools address: browser-only, zero-install remote control with no accounts. Use those other tools when you need their specific strengths (gaming, support workflows, audio forwarding). Use AnywhereInput for quick, frictionless access from anywhere.
+
+---
+
 <div align="center">
 
 <!-- Footer Banner -->
