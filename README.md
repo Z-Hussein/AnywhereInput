@@ -48,58 +48,61 @@
 
 ---
 
-## 🎯 The Problem
-
-Every remote control tool forces you through **friction**:
-
-| Tool | What's Wrong |
-|------|-------------|
-| TeamViewer / Chrome Remote Desktop | 😤 Account creation, bloated client, corporate telemetry |
-| VNC / RDP | 🔧 Port forwarding, firewall rules, VPN setup |
-| Dedicated Apps | 📱 App store, permissions, updates, storage |
-
-**AnywhereInput does none of that.**
-
-Open a browser → paste a link → control your PC. That's it.
-
-> *"The server is yours. The connection is direct. The client is the web."*
-
----
-
-## 🚀 Quick Start
+## 🚀 Quick Start - The "One Scroll" Experience
 
 ### ⚡ One-Liner (Recommended)
+
 ```bash
 pip install anywhereinput
 anywhereinput --tunnel cloudflare
 ```
 
+**That's it.** Open a browser on any device, paste the link, and control your PC. No installs, no accounts, no friction.
+
+> 💡 The "Ah-Ha!" moment: *your screen appears in a browser tab, fully controllable with mouse + keyboard - from a phone, tablet, or another computer.*
+
+### 🖥️ Desktop GUI (No Terminal Needed)
+
+```bash
+pip install anywhereinput[app]    # includes the PyQt6 admin interface
+anywhereinput --app               # opens a visual window for token management
+```
+
+---
+
 ### 🐧 Linux (Recommended: pipx)
+
 ```bash
 sudo apt install pipx && pipx ensurepath   # install pipx (one-time)
 pipx install anywhereinput                 # install anywhereinput
 anywhereinput --tunnel cloudflare
 ```
-> `pipx` keeps the install isolated from system Python — no dependency conflicts, no `sudo pip`.
+
+### 🖥️ Desktop GUI (No Terminal Needed)
+
+```bash
+pipx install anywhereinput[app]    # or: pipx install --pip-args="-e [app]" anywhereinput
+anywhereinput --app
+```
+
+
+> `pipx` keeps the install isolated from system Python - no dependency conflicts, no `sudo pip`.
 
 ### 🪟 Windows
+
 ```batch
 scripts\windows\setup.bat
 scripts\windows\run.bat
 ```
 
 ### 🍎 macOS
+
 ```bash
 chmod +x scripts/unix/setup.sh scripts/unix/run.sh
 ./scripts/unix/setup.sh
 ./scripts/unix/run.sh
 ```
 
-### 🖥️ Desktop GUI (No Terminal Needed)
-```bash
-pip install anywhereinput[app]    # or: pipx install --pip-args="-e [app]" anywhereinput
-anywhereinput --app
-```
 
 ---
 
@@ -170,9 +173,9 @@ Settings are loaded automatically from YAML files at startup. CLI flags override
 
 ### Config load order (highest wins)
 
-1. **CLI flags** — `--fps`, `--quality`, etc. override everything
-2. **`config/local_settings.yaml`** — user overrides (gitignored)
-3. **`config/settings.yaml`** — project defaults
+1. **CLI flags** - `--fps`, `--quality`, etc. override everything
+2. **`config/local_settings.yaml`** - user overrides (gitignored)
+3. **`config/settings.yaml`** - project defaults
 
 ### Quick config example
 
@@ -184,7 +187,7 @@ anywhereinput config init
 anywhereinput config edit --settings
 # Change: fps: 120 → fps: 60
 
-# Start server — reads from YAML automatically
+# Start server - reads from YAML automatically
 anywhereinput --tunnel local
 # FPS is 60 from YAML, not 120 (default)
 ```
@@ -201,7 +204,7 @@ screen_capture:
   quality: 50
 EOF
 
-# Start server — uses local_settings values
+# Start server - uses local_settings values
 anywhereinput --tunnel local
 ```
 
@@ -341,17 +344,17 @@ See [docs/USAGE.md](docs/USAGE.md) for full configuration guide.
 - **Auto-generated** 32-char token on each start
 - **Per-token** input permissions (`move`, `click`, `scroll`, `keyboard`, `screen_toggle`, `ping`)
 - **IP allowlist** per token (CIDR + single-host)
-- **IP block/deny list** — global + per-token (CIDR + single-host)
-- **Kick + block clients** from admin UI — disconnects client and adds their IP to token's block list
-- **Blocked IPs management** — view and unblock kicked IPs per token in the admin app token editor
+- **IP block/deny list** - global + per-token (CIDR + single-host)
+- **Kick + block clients** from admin UI - disconnects client and adds their IP to token's block list
+- **Blocked IPs management** - view and unblock kicked IPs per token in the admin app token editor
 - **Token rotation** via `n` + Enter or Ctrl+N
-- **Rate limiting** — per-IP limits on WebSocket auth, API, and token creation (localhost excluded)
-- **Audit logging** — JSON-lines rotating log for all security events (token/client/IP/connection changes)
-- **CORS headers** — `Access-Control-Allow-*` on all API endpoints for cross-origin access
-- **WebSocket close codes** — RFC 6455 codes (1000, 1008, 1011, 1012) + custom codes (4001, 4003, 4004) for structured disconnects
+- **Rate limiting** - per-IP limits on WebSocket auth, API, and token creation (localhost excluded)
+- **Audit logging** - JSON-lines rotating log for all security events (token/client/IP/connection changes)
+- **CORS headers** - `Access-Control-Allow-*` on all API endpoints for cross-origin access
+- **WebSocket close codes** - RFC 6455 codes (1000, 1008, 1011, 1012) + custom codes (4001, 4003, 4004) for structured disconnects
 - **HTTPS/WSS** encryption via tunnel providers
 - **Zero external data storage**
-- Single active token per session — rotation invalidates all previous
+- Single active token per session - rotation invalidates all previous
 
 For enterprise-grade security (OAuth, mTLS, SSO), add a reverse proxy like **Caddy**, **Traefik**, or **Nginx**.
 
@@ -388,7 +391,7 @@ PyQt6>=6.11.0
 ```bash
 pip install -e ".[dev]"
 python -m pytest tests/ -v
-# Expected: 318 passed, 10 skipped (~0.7s)
+# Expected: 316 passed, 12 skipped (~0.7s)
 ```
 
 ### Run specific tests
@@ -431,7 +434,7 @@ See [docs/TESTING.md](docs/TESTING.md) for the complete testing guide.
 | Problem | Fix |
 |---------|-----|
 | Config not loading | Check YAML syntax: `python -c "import yaml; print(yaml.safe_load(open('config/settings.yaml')))"` |
-| Setting not applied | CLI flags override YAML — check if `--fps` etc. are set |
+| Setting not applied | CLI flags override YAML - check if `--fps` etc. are set |
 | Server won't start on port | Port in use: `lsof -i :8008` or use `--port 8009` |
 | Tunnel URL not showing | Check internet; try another provider |
 | Can't connect from device | Check firewall (port 8008); test `localhost:8008` first |
@@ -454,16 +457,13 @@ See [docs/TESTING.md](docs/TESTING.md) for the complete testing guide.
 - [x] CORS middleware on all API endpoints
 - [x] WebSocket close codes (RFC 6455 + custom 4xxx codes)
 - [x] WebSocket reconnection with exponential backoff (client-side)
-- [x] Config persistence — YAML files loaded at startup, CLI overrides YAML
+- [x] Config persistence - YAML files loaded at startup, CLI overrides YAML
 - [x] Local settings override (`config/local_settings.yaml`, gitignored)
 - [x] Admin app settings persistence (saves to YAML on change)
-- [x] Unified defaults — all files use `_constants.py` values (fps=120, quality=40, scale=0.7)
-- [x] Graceful restart — SIGHUP triggers client notification + process re-exec
+- [x] Unified defaults - all files use `_constants.py` values (fps=120, quality=40, scale=0.7)
+- [x] Graceful restart - SIGHUP triggers client notification + process re-exec
 - [x] Client notification before shutdown (close code 1012)
-- [x] Graceful import failure — PyAutoGUI/screen capture backends degrade cleanly
-- [x] 318 tests, 0 failures
-
-### Completed (v1.3.0)
+- [x] Graceful import failure - PyAutoGUI/screen capture backends degrade cleanly
 - [x] Rate limiting middleware (per-IP: WebSocket auth, API, token creation)
 - [x] Audit logging (JSON-lines rotating log for security events)
 - [x] Structured logging with rotating file handler (10MB x 5 files)
@@ -528,7 +528,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 <p align="center">
   <a href="https://www.anywhereinput.com">🌐 Website</a> •
   <a href="https://pypi.org/project/anywhereinput/">📦 PyPI</a> •
-  <a href="https://github.com/Z-Hussein/anywhereinput">⭐ Star on GitHub</a>
+  <a href="https://github.com/Z-Hussein/AnywhereInput">⭐ Star on GitHub</a>
 </p>
 
 </div>
