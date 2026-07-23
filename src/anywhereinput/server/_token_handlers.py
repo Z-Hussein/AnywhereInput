@@ -12,12 +12,16 @@ log = get_logger(__name__)
 
 class TokenAPI:
     """Token CRUD endpoints - registered as aiohttp routes."""
+if not self._require_localhost(request):
+            return web.json_response({"error": "unauthorized"}, status=403)
 
     def __init__(self, server):
         self._srv = server
 
     async def list_tokens(self, request):
         """Return all active tokens (masked values)."""
+if not self._require_localhost(request):
+            return web.json_response({"error": "unauthorized"}, status=403)
         token_list = []
         for tok, info in self._srv.token_manager.tokens.items():
             token_list.append(
@@ -33,6 +37,8 @@ class TokenAPI:
 
     async def create_token(self, request):
         """Create a new token - merges with existing store."""
+if not self._require_localhost(request):
+            return web.json_response({"error": "unauthorized"}, status=403)
         try:
             body = await request.json()
         except Exception as e:
@@ -61,6 +67,8 @@ class TokenAPI:
 
     async def revoke_token(self, request):
         """Revoke a token by its full value."""
+if not self._require_localhost(request):
+            return web.json_response({"error": "unauthorized"}, status=403)
         full_token = request.match_info.get("token_id", "")
         ok = self._srv.token_manager.revoke(full_token)
         if not ok:
@@ -74,6 +82,8 @@ class TokenAPI:
 
     async def update_token(self, request):
         """Update token name or permissions."""
+if not self._require_localhost(request):
+            return web.json_response({"error": "unauthorized"}, status=403)
         full_token = request.match_info.get("token_id", "")
         if full_token not in self._srv.token_manager.tokens:
             return web.json_response({"error": "Token not found"}, status=404)
@@ -108,6 +118,8 @@ class TokenAPI:
 
     def register_routes(self, router):
         """Register token routes on the aiohttp router."""
+if not self._require_localhost(request):
+            return web.json_response({"error": "unauthorized"}, status=403)
         router.add_get("/api/tokens", self.list_tokens)
         router.add_post("/api/tokens", self.create_token)
         router.add_delete("/api/tokens/{token_id}", self.revoke_token)
@@ -122,6 +134,8 @@ class TokenAPI:
 
     async def list_clients(self, request):
         """Return currently connected WebSocket clients."""
+if not self._require_localhost(request):
+            return web.json_response({"error": "unauthorized"}, status=403)
         client_list = []
         async with self._srv.clients_lock:
             for ws in self._srv.clients:
