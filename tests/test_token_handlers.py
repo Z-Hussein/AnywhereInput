@@ -31,7 +31,7 @@ def token_api():
     srv.token_manager.DEFAULT_PERMISSIONS.return_value = ["screen"]
     srv.token_manager.revoke.return_value = True
     srv.token_manager.generate_token.return_value = "newtoken1234567890abcdef"
-    srv._get_client_ip.return_value = ("1.2.3.4", 12345)
+    srv._get_client_ip.return_value = ("127.0.0.1", 12345)
     srv.clients = []
     srv.clients_lock = mock.AsyncMock()
     srv._client_tokens = {}
