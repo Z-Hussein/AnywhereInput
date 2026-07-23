@@ -19,6 +19,10 @@ class RequestAPI:
     def __init__(self, server):
         self._srv = server
 
+    def _require_localhost(self, request) -> bool:
+        ip, _ = self._srv._get_client_ip(request)
+        return str(ip) in ("127.0.0.1", "::1", "localhost")
+
     async def request_connect(self, request):
         """Client sends their name + optional info; server creates a pending request."""
         try:
