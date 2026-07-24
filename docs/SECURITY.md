@@ -2,10 +2,10 @@
 
 ## Token Authentication
 - A new 32-character random token is generated on every server start
-- All previous tokens are **cleared on startup** — zero-trust, fresh session every restart
-- Press **`n`** to rotate tokens instantly — a new token is generated (pressing `Enter` is not required)
+- All previous tokens are **cleared on startup** - zero-trust, fresh session every restart
+- Press **`n`** to rotate tokens instantly - a new token is generated (pressing `Enter` is not required)
 - New tokens can also be triggered at runtime by setting the environment variable `AITOKEN_ROTATE=1` on any node running the server
-- Multiple tokens can coexist simultaneously — rotation does **not** revoke existing tokens
+- Multiple tokens can coexist simultaneously - rotation does **not** revoke existing tokens
 
 ## Per-Token Permissions
 Each token carries a list of allowed input types:
@@ -29,11 +29,11 @@ Built-in per-IP rate limiting protects against brute-force attacks:
 | Endpoint | Limit | Window | Burst |
 |----------|-------|--------|-------|
 | WebSocket auth (`/ws`) | 10 requests | 1 second | +5 (effective: 15) |
-| Token creation (`/api/tokens`) | 5 requests | 10 seconds | — |
+| Token creation (`/api/tokens`) | 5 requests | 10 seconds | - |
 | General API (`/api/*`) | 30 requests | 1 second | +10 (effective: 40) |
 
-- **Localhost excluded** — `127.0.0.1`, `::1`, and `localhost` are never rate-limited
-- **Static files excluded** — `/favicon.ico` and `/static/` paths bypass rate limiting
+- **Localhost excluded** - `127.0.0.1`, `::1`, and `localhost` are never rate-limited
+- **Static files excluded** - `/favicon.ico` and `/static/` paths bypass rate limiting
 - Returns HTTP 429 with `Retry-After` header when exceeded
 
 ## Audit Logging
@@ -72,7 +72,7 @@ All tunnel providers provide HTTPS automatically:
 **Local-only mode (option 6) has NO encryption.** If you need to use it, wrap it behind a reverse proxy or SSH tunnel.
 
 ## Known Limitations
-- **Rate limiting is per-IP** — shared NAT/VPN IPs share the same bucket
+- **Rate limiting is per-IP** - shared NAT/VPN IPs share the same bucket
 - Audit log rotates at 5MB × 10 files (50MB max)
 
 ## Hardening Recommendations
