@@ -1,33 +1,18 @@
 # Bug Reporting Guide
 
-All known bugs have been fixed. If you find a new issue, please report it.
+If you find a bug, here's how to report it so it actually gets fixed.
 
----
+## Before reporting
 
-## 🐛 How to Report a Bug
+- Check [existing issues](https://github.com/Z-Hussein/anywhereinput/issues) to avoid duplicates
+- Update to the latest version: `pip install -U anywhereinput`
+- Try to reproduce consistently - intermittent bugs are harder to track down
 
-### Before You Report
-
-1. **Check existing issues** - Search [GitHub Issues](https://github.com/Z-Hussein/AnywhereInput/issues) to avoid duplicates.
-2. **Update to latest** - Ensure you're on the newest version (`pip install -U anywhereinput`).
-3. **Reproduce reliably** - Confirm the bug happens consistently, not intermittently.
-
-### What to Include
-
-| Field | Description |
-|-------|-------------|
-| **Summary** | One-line description of the problem |
-| **Steps to Reproduce** | Numbered list of exact actions to trigger the bug |
-| **Expected Behavior** | What should happen |
-| **Actual Behavior** | What actually happens |
-| **Environment** | OS, Python version, browser, tunnel provider |
-| **Logs/Errors** | Relevant server/client logs, stack traces, screenshots |
-
-### Bug Report Template
+## What to include
 
 ```markdown
 ## Summary
-Brief description of the bug
+One-line description of the problem
 
 ## Steps to Reproduce
 1. Start server with `anywhereinput --tunnel cloudflare`
@@ -42,11 +27,11 @@ First tap moves cursor, second tap clicks
 First tap clicks immediately
 
 ## Environment
-- **Server OS:** Ubuntu 24.04 / Windows 11 / macOS 14
-- **Python:** 3.11.9
-- **Browser:** Chrome 126 / Safari 17 / Firefox 127
-- **Tunnel:** Cloudflare / Tailscale / Pinggy / Zrok2 / Local
-- **AnywhereInput version:** 1.2.7
+- Server OS: Ubuntu 24.04 / Windows 11 / macOS 14
+- Python: 3.11.9
+- Browser: Chrome 126 / Safari 17 / Firefox 127
+- Tunnel: Cloudflare / Tailscale / Pinggy / Zrok2 / Local
+- AnywhereInput version: 1.3.1
 
 ## Logs
 ```
@@ -55,50 +40,30 @@ First tap clicks immediately
 ```
 
 ## Screenshots
-(Optional) Attach screenshots or screen recordings
+(Optional but helpful)
 
 ## Additional Context
-Any other relevant information
+Anything else that might be relevant
 ```
 
----
+Minimal reproduction steps are the most helpful thing you can provide. If you can boil it down to "run this, see this" in 3 steps instead of a 20-step setup, the bug gets fixed faster.
 
-## 📋 Common Debugging Info
+## Quick self-checks
 
-When in doubt, include:
+| Symptom | Check first |
+|---------|-------------|
+| Black screen | Run with `--no-capture` to test if it's capture-related |
+| Mouse lag | Lower quality, increase FPS, check tunnel latency |
+| Auth fails | Wrong token or IP blocked - check server logs for "Invalid token" |
+| Keyboard drops | Fixed in 1.2.4 - update to latest |
+
+## Useful commands
 
 ```bash
-# Server version
-anywhereinput --version
-
-# Python environment
-python -c "import anywhereinput; print(anywhereinput.__version__)"
-
-# Check server logs (run with --tunnel local for clean output)
-anywhereinput --tunnel local
+anywhereinput --version              # server version
+python -c "import anywhereinput; print(anywhereinput.__version__)"  # installed version
+anywhereinput --tunnel local          # clean output, no tunnel noise
 ```
 
----
-
-## 🔗 Useful Links
-
-- **Issues:** [github.com/Z-Hussein/AnywhereInput/issues](https://github.com/Z-Hussein/AnywhereInput/issues)
-- **Discussions:** [github.com/Z-Hussein/AnywhereInput/discussions](https://github.com/Z-Hussein/AnywhereInput/discussions)
-- **Roadmap:** [README.md#-roadmap](README.md#-roadmap)
-- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
-
----
-
-## ⚡ Quick Triage
-
-| Symptom | Likely Cause | First Check |
-|---------|--------------|-------------|
-| Black screen | Display not available / MSS failure | Run with `--no-capture` to test |
-| Mouse lag | High latency / low FPS | Lower `--quality`, increase `--fps` |
-| Auth fails | Wrong token / IP blocked | Check server logs for "Invalid token" |
-| Keyboard drops | Slow queue bug (fixed in 1.2.4) | Update to latest |
-| Touch not working | Mobile browser restrictions | Use HTTPS/WSS via tunnel |
-
----
-
-> **Tip:** The faster you can reproduce it, the faster it gets fixed. Minimal reproduction steps are gold.
+Issues: https://github.com/Z-Hussein/anywhereinput/issues
+Discussions: https://github.com/Z-Hussein/anywhereinput/discussions
