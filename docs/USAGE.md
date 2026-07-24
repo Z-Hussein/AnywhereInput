@@ -1,6 +1,12 @@
-# Usage Guide
+<div align="center">
 
-## Touchpad Controls
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:667eea,100:764ba2&height=150&section=header&text=Usage%20Guide&fontSize=50&fontColor=ffffff&animation=fadeIn" alt="Usage Guide" />
+
+</div>
+
+# Usage Guide ⚙️
+
+## 🖱️ Touchpad Controls
 
 | Action | How |
 |--------|-----|
@@ -11,24 +17,29 @@
 | Scroll | Two-finger drag on touchpad, or Scroll buttons |
 | Center mouse | Center button |
 
-## Screen Overlay
+## 📺 Screen Overlay
+
 Tap anywhere on the live screen stream to move the cursor to that location and click. (Only functional on the main display for now.)
 
-## Keyboard
+## ⌨️ Keyboard
+
 - Tap **Keyboard** button to open text input
 - Type text and tap **Send**
 - Use **Enter**, **Esc**, **Tab**, **Backspace** buttons
 - Use hotkey buttons for common shortcuts
 
-## Settings Panel
+## ⚙️ Settings Panel
+
 Tap the gear icon to access:
+
 - **Screen Capture**: Toggle live stream
 - **Mouse Sensitivity**: 0.3x to 3.0x
 - **Show FPS Counter**: Display stream performance
 - **Tap to Click**: Enable/disable tap-to-click
 - **Long Press = Right Click**: Enable/disable long-press gesture
 
-## Token Permissions (Admin App)
+## 🔑 Token Permissions (Admin App)
+
 When managing tokens via `anywhereinput --app` or the token API, you can restrict what each token is allowed to do:
 
 | Permission | Allows |
@@ -41,12 +52,16 @@ When managing tokens via `anywhereinput --app` or the token API, you can restric
 | `ping` | Health check pings (always allowed) |
 
 ### IP Allowlist
+
 In the admin app's token editor, set an IP allowlist to restrict which network addresses can use a token:
+
 - Leave empty = allow all IPs
 - Single host: `192.x.x.x`
 - CIDR range: `192.x.x.x/24`
 
-## Configuration File Management
+---
+
+## 📝 Configuration File Management
 
 AnywhereInput includes a `config` command to create, view, and edit configuration files. These config files **are loaded at startup** and become the server defaults. CLI flags override YAML values.
 
@@ -87,7 +102,7 @@ anywhereinput config init
 anywhereinput config edit --settings
 # Change: fps: 120 → fps: 60
 
-# 3. Start server — reads from YAML automatically
+# 3. Start server - reads from YAML automatically
 anywhereinput --tunnel local
 # FPS is now 60 (from YAML), not 120 (default)
 ```
@@ -104,14 +119,16 @@ screen_capture:
   quality: 50
 EOF
 
-# Start server — uses local_settings.yaml values
+# Start server - uses local_settings.yaml values
 anywhereinput --tunnel local
 # Port is 9000, FPS is 30
 ```
 
-> **Tip:** `config/local_settings.yaml` is gitignored — perfect for machine-specific settings.
+> 💡 `config/local_settings.yaml` is gitignored — perfect for machine-specific settings.
 
-## Graceful Restart
+---
+
+## 🔄 Graceful Restart
 
 The server supports graceful restart via SIGHUP. Connected clients are notified before shutdown and automatically reconnect.
 
@@ -131,7 +148,7 @@ systemctl restart anywhereinput
 ### What happens
 
 1. Server broadcasts `{"type": "server_restarting"}` to all connected clients
-2. Clients display "Server is restarting — reconnecting in 3s..."
+2. Clients display "Server is restarting - reconnecting in 3s..."
 3. Server closes all WebSocket connections with close code 1012
 4. Process re-execs with the same CLI arguments
 5. Config files are re-read from disk (picks up changes to `settings.yaml`)
@@ -147,5 +164,5 @@ anywhereinput config edit --settings
 # 2. Send SIGHUP to apply changes
 kill -HUP $(pgrep -f server_core)
 
-# 3. Server restarts with new config — no manual restart needed
+# 3. Server restarts with new config - no manual restart needed
 ```
