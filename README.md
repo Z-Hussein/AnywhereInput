@@ -7,10 +7,9 @@
 
 <p align="center">
   <a href="https://www.anywhereinput.com">🌐 Website</a> •
-  <a href="#-quick-start">🚀 Quick Start</a> •
-  <a href="#-Features-at-a-Glance">✨ Features</a> •
-  <a href="#-How-It-Works">⚙️ How It Works</a> •
-  <a href="#-tunnel-providers">🔒 Tunnels</a>
+  <a href="docs/INSTALL.md">🚀 Quick Start</a> •
+  <a href="docs/USAGE.md">⚙️ How It Works</a> •
+  <a href="docs/TUNNELS.md">🔒 Tunnels</a>
 </p>
 
 <!-- Badges -->
@@ -62,7 +61,7 @@ pip install anywhereinput
 anywhereinput --tunnel cloudflare
 ```
 
-Paste the printed URL into any browser on another device. That's it — your screen shows up in the tab, fully controllable with mouse and keyboard.
+Paste the printed URL into any browser on another device. That's it - your screen shows up in the tab, fully controllable with mouse and keyboard.
 
 ### GUI (optional)
 
@@ -91,7 +90,7 @@ Use the scripts in `scripts/windows/` (`.bat`) or `scripts/unix/` (`.sh`). They 
 
 - Screen capture via `mss` + Pillow, JPEG stream at configurable FPS up to 120
 - Mouse + keyboard input forwarded from browser WebSocket back to the host OS via pyautogui
-- Tunnel providers: Cloudflare, Tailscale, Pinggy, Zrok2 — spawns the binary and negotiates the tunnel automatically
+- Tunnel providers: Cloudflare, Tailscale, Pinggy, Zrok2 - spawns the binary and negotiates the tunnel automatically
 - Local-only mode for LAN use (no internet required)
 - Multi-monitor support (`--monitor N`)
 - Per-launch 32-char auth tokens, IP allow/block lists, per-token permissions
@@ -324,4 +323,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
+MIT - see [LICENSE](LICENSE)
