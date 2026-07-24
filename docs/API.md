@@ -9,9 +9,9 @@ Connect to `/ws` and send:
 ```
 
 Supported `type` values:
-- `"auth"` — authenticate with an existing token
-- `"handshake"` — same as auth (alias)
-- **Connection requests** — if a pending connection request exists, send `{ "token": "<req_id>::<client_name>" }` to complete it (requires admin approval on the server side).
+- `"auth"` - authenticate with an existing token
+- `"handshake"` - same as auth (alias)
+- **Connection requests** - if a pending connection request exists, send `{ "token": "<req_id>::<client_name>" }` to complete it (requires admin approval on the server side).
 
 ### Auth Response
 
@@ -168,13 +168,13 @@ Create a new token. Send JSON body:
 {
   "name": "guest-device",
   "permissions": ["move", "click", "scroll"],
-  "allowed_ips": ["192.168.1.0/24"]
+  "allowed_ips": ["192.168.x.x/24"]
 }
 ```
 
-- `name` or `label` (alias) — human-readable label
-- `permissions` — list of allowed command types; defaults to all if omitted
-- `allowed_ips` — optional IP allowlist for the token
+- `name` or `label` (alias) - human-readable label
+- `permissions` - list of allowed command types; defaults to all if omitted
+- `allowed_ips` - optional IP allowlist for the token
 
 Response (201):
 
@@ -220,7 +220,7 @@ Return the list of blocked IPs for a given token.
 Response:
 
 ```json
-{"blocked_ips": ["10.0.0.5", "192.168.1.100"]}
+{"blocked_ips": ["10.0.x.x", "192.168.x.x"]}
 ```
 
 #### DELETE `/api/tokens/{token_id}/blocked-ips/{ip}`
@@ -230,7 +230,7 @@ Remove an IP from the block list.
 Response:
 
 ```json
-{"ok": true, "message": "IP 10.0.0.5 unblocked"}
+{"ok": true, "message": "IP 10.0.x.x unblocked"}
 ```
 
 ### Connected Clients
@@ -264,7 +264,7 @@ Kick a connected client and add their IP to the token's block list. `{client_id}
 Response:
 
 ```json
-{"ok": true, "message": "Client kicked, IP 10.0.0.5 added to block list"}
+{"ok": true, "message": "Client kicked, IP 10.0.x.x added to block list"}
 ```
 
 ### Screen & Engine Info
